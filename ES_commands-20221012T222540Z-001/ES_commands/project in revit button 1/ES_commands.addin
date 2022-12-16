@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<RevitAddIns>
+  <AddIn Type="Application">
+    <Name>ES_commands</Name>
+    <Assembly>ES_commands\ES_commands.dll</Assembly>
+    <FullClassName>BoostYourBIM.ribbonUI</FullClassName>
+    <ClientId>54C32EA6-DDF8-4ED0-BAE0-7468DE9BC0F6</ClientId>
+    <VendorId>A+JC</VendorId>
+    <VendorDescription>Alexander lopez , Alexander@elitesurvery.com.au</VendorDescription>
+  </AddIn>
+</RevitAddIns>
