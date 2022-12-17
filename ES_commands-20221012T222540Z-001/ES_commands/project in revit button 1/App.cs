@@ -9884,18 +9884,19 @@ namespace BoostYourBIM
         {
             try
             {
-                string filename2 = @"T:\Transfer\lopez\Book1.xlsx";
+                string filename2 = @"Documents\Test_Sync_Manager_1.xlsx";
                 using (ExcelPackage package = new ExcelPackage(new FileInfo(filename2)))
                 {
                     ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
 
-                    int number = Convert.ToInt32(sheet.Cells[2, 1].Value);
-                    sheet.Cells[2, 1].Value = (number + 1); ;
+                    //int number = Convert.ToInt32(sheet.Cells[2, 1].Value);
+                    sheet.Cells[2, 1].Value = 16 ;
                     package.Save();
                 }
             }
             catch (Exception)
             {
+                TaskDialog.Show("!", "Excel file not found");
                 MessageBox.Show("Excel file not found", "");
             }
 
