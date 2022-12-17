@@ -9878,8 +9878,27 @@ namespace BoostYourBIM
     public static class myCommand
     {
         static DateTime lastSaveTime;
+
+
         public static void myDocumentSaving(object sender, DocumentSynchronizingWithCentralEventArgs args)
         {
+            try
+            {
+                string filename2 = @"T:\Transfer\lopez\Book1.xlsx";
+                using (ExcelPackage package = new ExcelPackage(new FileInfo(filename2)))
+                {
+                    ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
+
+                    int number = Convert.ToInt32(sheet.Cells[2, 1].Value);
+                    sheet.Cells[2, 1].Value = (number + 1); ;
+                    package.Save();
+                }
+            }
+            catch (Exception)
+            {
+                MessageBox.Show("Excel file not found", "");
+            }
+
             if (File.Exists(@"T:\Lopez\queue"))
             {
                 try
