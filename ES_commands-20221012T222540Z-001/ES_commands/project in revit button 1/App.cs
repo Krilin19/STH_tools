@@ -9857,132 +9857,122 @@ namespace BoostYourBIM
     public class Register_ : IExternalCommand
     {
         static AddInId appId = new AddInId(new Guid("6C22CC72-A167-4819-AAF1-A178F6B44BAB"));
-
         static public Autodesk.Revit.ApplicationServices.Application m_app;
-        
         public Autodesk.Revit.UI.Result Execute(ExternalCommandData commandData, ref string message, ElementSet elementSet)
         {
             UIDocument uidoc = commandData.Application.ActiveUIDocument;
             Document doc = uidoc.Document;
-
-
             //m_app.DocumentSynchronizingWithCentral += new EventHandler<DocumentSynchronizingWithCentralEventArgs>(myCommand.myDocumentSaving);
             //return Autodesk.Revit.UI.Result.Succeeded;
-
-
             //doc.DocumentSaving += new EventHandler<DocumentSavingEventArgs>(myCommand.myDocumentSaving);
             return Autodesk.Revit.UI.Result.Succeeded;
         }
     }
-
-    
     public static class myCommand
     {
         static DateTime lastSaveTime;
-        
-
         public static void myDocumentSaving(object sender, DocumentSynchronizingWithCentralEventArgs args)
-        {
-           
-           
-
-            //if (File.Exists(@"T:\Lopez\queue"))
-            //{
-            //    try
-            //    {
-            //        using (StreamWriter sw = new StreamWriter(@"T:\Lopez\queue", true))
-            //        {
-            //            sw.WriteLine("user1");
-            //        }
-            //    }
-            //    catch (Exception)
-            //    {
-            //        throw;
-            //    }
-            //}
-            //else
-            //{
-            //    MessageBox.Show("Sync Manager file not found", "");
-            //    return;
-            //}
-
-        //    string filename = "";
-        //    double reset = 1000000;
-        //    try
-        //    {
-        //        filename = @"T:\Lopez\Sync Manager";
-
-        //    }
-        //    catch (Exception)
-        //    {
-        //        MessageBox.Show("Sync Manager file not found", "");
-        //        return;
-        //    }
-
-        //    String last_line = File.ReadAllLines(filename).Last();
-        //    if (last_line != "Ready")
-        //    {
-        //        MessageBox.Show("Sync Manager queue", "");
-        //        args.Cancel();
-        //    }
-        //label:
-        //    if (File.Exists(@"T:\Lopez\Sync Manager"))
-        //    {
-        //        try
-        //        {
-        //            last_line = File.ReadAllLines(@"T:\Lopez\Sync Manager").Last();
-        //        }
-        //        catch (Exception)
-        //        {
-
-        //            throw;
-        //        }
-        //    }
-
-        //    for (int i = 0; i < reset; i++)
-        //    {
-        //        if (i == 999999)
-        //        {
-        //            if (last_line != "Ready")
-        //            {
-        //                args.Cancel();
-        //                goto label;
-        //            }
-        //            if (last_line == "Ready")
-        //            {
-        //                using (StreamWriter sw = new StreamWriter(filename, true))
-        //                {
-        //                    sw.WriteLine(DateTime.Now + ": " + " user has Synced" /*+ user*/);
-        //                    sw.WriteLine("Ready");
-        //                    sw.Close();
-        //                }
-        //            }
-        //        }
-        //    }
-
-            //Document doc = sender as Document;
-            //UIApplication uiApp = sender as UIApplication;
-            //Document doc = uiApp.ActiveUIDocument.Document;
-
-            //string user = doc.Application.Username;
-            //string filename = doc.PathName;
-            //string filenameShort = Path.GetFileNameWithoutExtension(filename);
-            //string tempFolder = Path.GetTempPath();
-            //string outputFile = Path.Combine(tempFolder, filenameShort + ".txt");
-        }
-        public static void myDocumentSaved(object sender, DocumentSynchronizedWithCentralEventArgs args)
         {
             try
             {
+                string Sync_list= @"C:\Users\lopez\OneDrive\Roaming\Documents\Sync_List.xlsx";
+                using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_list)))
+                {
+                    ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
+                    var Time_ = DateTime.Now;
+                    if (sheet.Cells[1, 1].Value == null )
+                    {
+                        for (int row = 2; row < 9999; row++)
+                        {
+                            for (int col = 2; col < 9999; col++)
+                            {
+                                var thisValue = sheet.Cells[row, col].Value;
+
+                                if (thisValue == null)
+                                {
+                                    sheet.Cells[1, 1].Value = "Busy";
+                                    sheet.Cells[2, 2].Value = Time_;
+                                    sheet.Cells[2, 3].Value = "Alex synced";
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        sheet.Cells[1, 1].Value = "Busy";
+                        string filename = "";
+                        double reset = 1000000;
+                        label:
+
+                        for (int i = 0; i < reset; i++)
+                        {
+                            if (i == 999999)
+                            {
+                                for (int row = 2; row < 9999; row++)
+                                {
+                                    var thisValue = sheet.Cells[row, 2].Value;
+                                    if (thisValue == null)
+                                    {
+                                        sheet.Cells[2, 2].Value = Time_;
+                                        sheet.Cells[2, 3].Value = "Alex synced";
+                                        sheet.Cells[1, 1].Value = "Ready";
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    package.Save();
+                }
                 string Sync_Manager = @"C:\Users\lopez\OneDrive\Roaming\Documents\Sync_Manager.xlsx";
                 using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
                 {
-                    ExcelWorksheet sheet = package.Workbook.Worksheets.Add("hola");
-                    sheet = package.Workbook.Worksheets.ElementAt(0);
-                    var hola = DateTime.Now + ": " + " Alex has Synced";
-                    //int number = Convert.ToInt32(sheet.Cells[2, 1].Value);
-                    sheet.Cells[2, 1].Value = hola;
-                    
+                    ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
+                    var Time_ = DateTime.Now;
+                    if (sheet.Cells[1, 1].Value != null && sheet.Cells[1, 1].Value.ToString() == "Ready")
+                    {
+                        for (int row = 2; row < 9999; row++)
+                        {
+                            for (int col = 2; col < 9999; col++)
+                            {
+                                var thisValue = sheet.Cells[row, col].Value;
+
+                                if (thisValue == null)
+                                {
+                                    sheet.Cells[1, 1].Value = "Busy";
+                                    sheet.Cells[2, 2].Value = Time_;
+                                    sheet.Cells[2, 3].Value = "Alex synced";
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        sheet.Cells[1, 1].Value = "Busy";
+                        string filename = "";
+                        double reset = 1000000;
+                        label:
+
+                        for (int i = 0; i < reset; i++)
+                        {
+                            if (i == 999999)
+                            {
+                                for (int row = 2; row < 9999; row++)
+                                {
+                                    var thisValue = sheet.Cells[row, 2].Value;
+                                    if (thisValue == null)
+                                    {
+                                        sheet.Cells[2, 2].Value = Time_;
+                                        sheet.Cells[2, 3].Value = "Alex synced";
+                                        sheet.Cells[1, 1].Value = "Ready";
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
                     package.Save();
                 }
             }
@@ -9991,50 +9981,30 @@ namespace BoostYourBIM
                 MessageBox.Show("Excel file not found", "");
                 return;
             }
-            
-            //if (File.Exists(@"T:\Lopez\queue"))
-            //{
-            //    //for (int i = 0; i < File.ReadLines(@"T:\Lopez\queue").Count(); i++)
-            //    //{
-            //    //    if (File.ReadLines(@"T:\Lopez\queue").ToArray()[i].ToString() == "Alex")
-            //    //    {
-            //    //        File.ReadLines(@"T:\Lopez\queue").ToArray()[i].Replace("Alex", "hola");
-            //    //    }
-            //    //}
-            //    string[] lines = File.ReadAllLines(@"T:\Lopez\queue");
+        }
+        public static void myDocumentSaved(object sender, DocumentSynchronizedWithCentralEventArgs args)
+        {
+            try
+            {
+                string Sync_Manager = @"C:\Users\lopez\OneDrive\Roaming\Documents\Sync_Manager.xlsx";
+                using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
+                {
 
+                    ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
+                    var Time_ = DateTime.Now;
+                    //int number = Convert.ToInt32(sheet.Cells[2, 1].Value);
 
-            //    foreach (string line in File.ReadLines(@"T:\Lopez\queue"))
-            //    {
-            //        if (line.Contains(" user"))
-            //        {
-            //        }
-            //        for (int i = 0; i < lines.Count(); i++)
-            //        {
-            //            lines[i].Replace(lines[i], "");
-            //        }
-
-            //    }
-            //    try
-            //    {
-            //        using (StreamWriter sw = new StreamWriter(@"T:\Lopez\queue", true))
-            //        {
-            //            sw.WriteLine(" closed");
-            //            sw.Close(); 
-            //        }
-
-
-            //    }
-            //    catch (Exception)
-            //    {
-            //        throw;
-            //    }
-            //}
-            //else
-            //{
-            //    MessageBox.Show("Sync Manager file not found", "");
-            //    return;
-            //}
+                    if (sheet.Cells[1, 1].Value != null && sheet.Cells[1, 1].Value.ToString() == "Busy")
+                    {
+                        sheet.Cells[1, 1].Value = "Ready";
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                MessageBox.Show("Excel file not found", "");
+                return;
+            }
         }
         public static void idleUpdate(object sender, IdlingEventArgs e)
         {
