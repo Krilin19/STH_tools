@@ -32,6 +32,7 @@ using Autodesk.Revit.DB.Events;
 using System.Net.NetworkInformation;
 using System.Runtime.CompilerServices;
 using Microsoft.Win32;
+using System.IO.Packaging;
 
 namespace BoostYourBIM
 {
@@ -9875,33 +9876,25 @@ namespace BoostYourBIM
         {
             try
             {
-                string Sync_list= @"C:\Users\lopez\OneDrive\Roaming\Documents\Sync_List.xlsx";
-                using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_list)))
+                string Sync_Manager = @"C:\Users\alopez\Documents\Sync_Manager.xlsx";
+                using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
                 {
                     ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
                     var Time_ = DateTime.Now;
-                    if (sheet.Cells[1, 1].Value == null )
+                    //---------------------------------------------------------
+                    if (sheet.Cells[1, 1].Value.ToString() == "Ready")
                     {
-                        for (int row = 2; row < 9999; row++)
+                        if (sheet.Cells[2, 2].Value == null)
                         {
-                            for (int col = 2; col < 9999; col++)
-                            {
-                                var thisValue = sheet.Cells[row, col].Value;
-
-                                if (thisValue == null)
-                                {
-                                    sheet.Cells[1, 1].Value = "Busy";
-                                    sheet.Cells[2, 2].Value = Time_;
-                                    sheet.Cells[2, 3].Value = "Alex synced";
-                                    break;
-                                }
-                            }
+                            sheet.Cells[1, 1].Value = "Busy";
+                            sheet.Cells[2, 2].Value = Time_;
+                            sheet.Cells[2, 3].Value = "Alex synced";
+                            goto finish;
                         }
                     }
-                    else
+                    //---------------------------------------------------------
+                    if (sheet.Cells[1, 1].Value.ToString() == "Busy")
                     {
-                        sheet.Cells[1, 1].Value = "Busy";
-                        string filename = "";
                         double reset = 1000000;
                         label:
 
@@ -9909,27 +9902,45 @@ namespace BoostYourBIM
                         {
                             if (i == 999999)
                             {
-                                for (int row = 2; row < 9999; row++)
+                                try
                                 {
-                                    var thisValue = sheet.Cells[row, 2].Value;
-                                    if (thisValue == null)
+                                    if (sheet.Cells[2, 2].Value == null)
                                     {
+                                        //sheet.Cells[1, 1].Value = "Busy";
                                         sheet.Cells[2, 2].Value = Time_;
                                         sheet.Cells[2, 3].Value = "Alex synced";
-                                        sheet.Cells[1, 1].Value = "Ready";
-                                        break;
+
+                                        goto finish;
                                     }
+                                    if (sheet.Cells[2, 2].Value != null)
+                                    {
+                                        for (int row = 3; row < 9999; row++)
+                                        {
+                                            var thisValue = sheet.Cells[row, 1].Value;
+
+                                            if (thisValue != null)
+                                            {
+                                                break;
+                                            }
+                                            else
+                                            {
+                                                //sheet.Cells[1, 1].Value = "Busy";
+                                                sheet.Cells[2, 2].Value = Time_;
+                                                sheet.Cells[2, 3].Value = "Alex synced";
+
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                                catch (Exception)
+                                {
+                                    goto label;
                                 }
                             }
                         }
                     }
-                    package.Save();
-                }
-                string Sync_Manager = @"C:\Users\lopez\OneDrive\Roaming\Documents\Sync_Manager.xlsx";
-                using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
-                {
-                    ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
-                    var Time_ = DateTime.Now;
+                    //---------------------------------------------------------
                     if (sheet.Cells[1, 1].Value != null && sheet.Cells[1, 1].Value.ToString() == "Ready")
                     {
                         for (int row = 2; row < 9999; row++)
@@ -9951,7 +9962,7 @@ namespace BoostYourBIM
                     else
                     {
                         sheet.Cells[1, 1].Value = "Busy";
-                        string filename = "";
+
                         double reset = 1000000;
                         label:
 
@@ -9973,6 +9984,8 @@ namespace BoostYourBIM
                             }
                         }
                     }
+
+                    finish:
                     package.Save();
                 }
             }
@@ -9986,17 +9999,16 @@ namespace BoostYourBIM
         {
             try
             {
-                string Sync_Manager = @"C:\Users\lopez\OneDrive\Roaming\Documents\Sync_Manager.xlsx";
+                string Sync_Manager = @"C:\Users\alopez\Documents\Sync_Manager.xlsx";
                 using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
                 {
-
                     ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
-                    var Time_ = DateTime.Now;
-                    //int number = Convert.ToInt32(sheet.Cells[2, 1].Value);
-
-                    if (sheet.Cells[1, 1].Value != null && sheet.Cells[1, 1].Value.ToString() == "Busy")
+                    if (sheet.Cells[1, 1].Value.ToString() == "Busy")
                     {
-                        sheet.Cells[1, 1].Value = "Ready";
+                        if (sheet.Cells[2, 2].Value == null)
+                        {
+                            sheet.Cells[1, 1].Value = "Ready";
+                        }
                     }
                 }
             }
