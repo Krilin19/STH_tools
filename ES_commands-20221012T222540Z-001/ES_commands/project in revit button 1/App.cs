@@ -9875,105 +9875,91 @@ namespace BoostYourBIM
         }
     }
 
+    
     public static class myCommand
     {
         static DateTime lastSaveTime;
-
+        
 
         public static void myDocumentSaving(object sender, DocumentSynchronizingWithCentralEventArgs args)
         {
-            try
-            {
-                string filename2 = @"Documents\Test_Sync_Manager_1.xlsx";
-                using (ExcelPackage package = new ExcelPackage(new FileInfo(filename2)))
-                {
-                    ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
+           
+           
 
-                    //int number = Convert.ToInt32(sheet.Cells[2, 1].Value);
-                    sheet.Cells[2, 1].Value = 16 ;
-                    package.Save();
-                }
-            }
-            catch (Exception)
-            {
-                TaskDialog.Show("!", "Excel file not found");
-                MessageBox.Show("Excel file not found", "");
-            }
+            //if (File.Exists(@"T:\Lopez\queue"))
+            //{
+            //    try
+            //    {
+            //        using (StreamWriter sw = new StreamWriter(@"T:\Lopez\queue", true))
+            //        {
+            //            sw.WriteLine("user1");
+            //        }
+            //    }
+            //    catch (Exception)
+            //    {
+            //        throw;
+            //    }
+            //}
+            //else
+            //{
+            //    MessageBox.Show("Sync Manager file not found", "");
+            //    return;
+            //}
 
-            if (File.Exists(@"T:\Lopez\queue"))
-            {
-                try
-                {
-                    using (StreamWriter sw = new StreamWriter(@"T:\Lopez\queue", true))
-                    {
-                        sw.WriteLine("user1");
-                    }
-                }
-                catch (Exception)
-                {
-                    throw;
-                }
-            }
-            else
-            {
-                MessageBox.Show("Sync Manager file not found", "");
-                return;
-            }
+        //    string filename = "";
+        //    double reset = 1000000;
+        //    try
+        //    {
+        //        filename = @"T:\Lopez\Sync Manager";
 
-            string filename = "";
-            double reset = 1000000;    
-            try
-            {
-                filename = @"T:\Lopez\Sync Manager";
+        //    }
+        //    catch (Exception)
+        //    {
+        //        MessageBox.Show("Sync Manager file not found", "");
+        //        return;
+        //    }
 
-            }
-            catch (Exception)
-            {
-                MessageBox.Show("Sync Manager file not found", "");
-                return;
-            }
+        //    String last_line = File.ReadAllLines(filename).Last();
+        //    if (last_line != "Ready")
+        //    {
+        //        MessageBox.Show("Sync Manager queue", "");
+        //        args.Cancel();
+        //    }
+        //label:
+        //    if (File.Exists(@"T:\Lopez\Sync Manager"))
+        //    {
+        //        try
+        //        {
+        //            last_line = File.ReadAllLines(@"T:\Lopez\Sync Manager").Last();
+        //        }
+        //        catch (Exception)
+        //        {
 
-            String last_line = File.ReadAllLines(filename).Last();
-            if (last_line != "Ready")
-            {
-                MessageBox.Show("Sync Manager queue", "");
-                //args.Cancel();
-            }
-            label:
-            if (File.Exists(@"T:\Lopez\Sync Manager"))
-            {
-                try
-                {
-                    last_line = File.ReadAllLines(@"T:\Lopez\Sync Manager").Last();
-                }
-                catch (Exception)
-                {
+        //            throw;
+        //        }
+        //    }
 
-                    throw;
-                }
-            }
-            
-            for (int i = 0; i < reset; i++)
-            {
-                if (i == 999999)
-                {
-                    if (last_line != "Ready")
-                    {
-                        //args.Cancel();
-                        goto label;
-                    }
-                    if (last_line == "Ready")
-                    {
-                        using (StreamWriter sw = new StreamWriter(filename, true))
-                        {
-                            sw.WriteLine(DateTime.Now + ": " + " user has Synced" /*+ user*/);
-                            sw.WriteLine("Ready");
-                            sw.Close();
-                        }
-                    }
-                }
-            }
-         
+        //    for (int i = 0; i < reset; i++)
+        //    {
+        //        if (i == 999999)
+        //        {
+        //            if (last_line != "Ready")
+        //            {
+        //                args.Cancel();
+        //                goto label;
+        //            }
+        //            if (last_line == "Ready")
+        //            {
+        //                using (StreamWriter sw = new StreamWriter(filename, true))
+        //                {
+        //                    sw.WriteLine(DateTime.Now + ": " + " user has Synced" /*+ user*/);
+        //                    sw.WriteLine("Ready");
+        //                    sw.Close();
+        //                }
+        //            }
+        //        }
+        //    }
+
             //Document doc = sender as Document;
             //UIApplication uiApp = sender as UIApplication;
             //Document doc = uiApp.ActiveUIDocument.Document;
@@ -9986,67 +9972,81 @@ namespace BoostYourBIM
         }
         public static void myDocumentSaved(object sender, DocumentSynchronizedWithCentralEventArgs args)
         {
-            if (File.Exists(@"T:\Lopez\queue"))
+            try
             {
-                //for (int i = 0; i < File.ReadLines(@"T:\Lopez\queue").Count(); i++)
-                //{
-                //    if (File.ReadLines(@"T:\Lopez\queue").ToArray()[i].ToString() == "Alex")
-                //    {
-                //        File.ReadLines(@"T:\Lopez\queue").ToArray()[i].Replace("Alex", "hola");
-                //    }
-                //}
-                string[] lines = File.ReadAllLines(@"T:\Lopez\queue");
-                
-                
-                foreach (string line in File.ReadLines(@"T:\Lopez\queue"))
+                string Sync_Manager = @"C:\Users\lopez\OneDrive\Roaming\Documents\Sync_Manager.xlsx";
+                using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
                 {
-                    if (line.Contains(" user"))
-                    {
-                    }
-                    for (int i = 0; i < lines.Count(); i++)
-                    {
-                        lines[i].Replace(lines[i], "");
-                    }
+                    ExcelWorksheet sheet = package.Workbook.Worksheets.Add("hola");
+                    sheet = package.Workbook.Worksheets.ElementAt(0);
+                    var hola = DateTime.Now + ": " + " Alex has Synced";
+                    //int number = Convert.ToInt32(sheet.Cells[2, 1].Value);
+                    sheet.Cells[2, 1].Value = hola;
                     
-                }
-                try
-                {
-                    using (StreamWriter sw = new StreamWriter(@"T:\Lopez\queue", true))
-                    {
-                        sw.WriteLine(" closed");
-                        sw.Close(); 
-                    }
-
-
-                }
-                catch (Exception)
-                {
-                    throw;
+                    package.Save();
                 }
             }
-            else
+            catch (Exception)
             {
-                MessageBox.Show("Sync Manager file not found", "");
+                MessageBox.Show("Excel file not found", "");
                 return;
             }
+            
+            //if (File.Exists(@"T:\Lopez\queue"))
+            //{
+            //    //for (int i = 0; i < File.ReadLines(@"T:\Lopez\queue").Count(); i++)
+            //    //{
+            //    //    if (File.ReadLines(@"T:\Lopez\queue").ToArray()[i].ToString() == "Alex")
+            //    //    {
+            //    //        File.ReadLines(@"T:\Lopez\queue").ToArray()[i].Replace("Alex", "hola");
+            //    //    }
+            //    //}
+            //    string[] lines = File.ReadAllLines(@"T:\Lopez\queue");
+
+
+            //    foreach (string line in File.ReadLines(@"T:\Lopez\queue"))
+            //    {
+            //        if (line.Contains(" user"))
+            //        {
+            //        }
+            //        for (int i = 0; i < lines.Count(); i++)
+            //        {
+            //            lines[i].Replace(lines[i], "");
+            //        }
+
+            //    }
+            //    try
+            //    {
+            //        using (StreamWriter sw = new StreamWriter(@"T:\Lopez\queue", true))
+            //        {
+            //            sw.WriteLine(" closed");
+            //            sw.Close(); 
+            //        }
+
+
+            //    }
+            //    catch (Exception)
+            //    {
+            //        throw;
+            //    }
+            //}
+            //else
+            //{
+            //    MessageBox.Show("Sync Manager file not found", "");
+            //    return;
+            //}
         }
         public static void idleUpdate(object sender, IdlingEventArgs e)
         {
             // set an initial value for the last saved time
             if (lastSaveTime == DateTime.MinValue)
                 lastSaveTime = DateTime.Now;
-
-            // check the current time
             DateTime now = DateTime.Now;
 
             TimeSpan elapsedTime = now.Subtract(lastSaveTime);
             double minutes = elapsedTime.Minutes;
-
             UIApplication uiApp = sender as UIApplication;
-            // write a comment to the journal file for diagnostic purposes
             uiApp.Application.WriteJournalComment("Idle check. Elapsed time = " + minutes, true);
-
-            // don't do anything if less than 3 minutes since last auto-save
             if (minutes < 1)
                 return;
 
@@ -10063,10 +10063,9 @@ namespace BoostYourBIM
 
             uiApp.Application.WriteJournalComment("AutoSave To Central", true);
             doc.SynchronizeWithCentral(transact, synch);
-
-            // update the last saved time
             lastSaveTime = DateTime.Now;
         }
+        
     }
 
     class ribbonUI : IExternalApplication
@@ -10082,13 +10081,14 @@ namespace BoostYourBIM
             string myRibbon_1 = "Alex Tools";
 
 
-            
+
             //application.Idling += new EventHandler<IdlingEventArgs>(myCommand.idleUpdate);
             //return Result.Succeeded;
 
+            
             application.ControlledApplication.DocumentSynchronizingWithCentral += new EventHandler<DocumentSynchronizingWithCentralEventArgs>(myCommand.myDocumentSaving);
             application.ControlledApplication.DocumentSynchronizedWithCentral += new EventHandler<DocumentSynchronizedWithCentralEventArgs>(myCommand.myDocumentSaved);
-
+            
 
 
             application.CreateRibbonTab(myRibbon_1);
