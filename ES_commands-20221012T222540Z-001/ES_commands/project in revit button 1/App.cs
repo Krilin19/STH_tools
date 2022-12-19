@@ -9874,9 +9874,9 @@ namespace BoostYourBIM
         static DateTime lastSaveTime;
         public static void myDocumentSaving(object sender, DocumentSynchronizingWithCentralEventArgs args)
         {
-            //double reset = 1000000;
-            //label:
-            start:
+            double reset = 1000000;
+        
+
             string s = "People syncing:" + "\n";
             try
             {
@@ -9888,7 +9888,7 @@ namespace BoostYourBIM
                     //---------------------------------------------------------
                     for (int row = 1; row < 20; row++)
                     {
-                        
+
                         if (sheet.Cells[row, 1].Value != null)
                         {
                             var Value1 = sheet.Cells[row, 1].Value;
@@ -9906,7 +9906,8 @@ namespace BoostYourBIM
                     {
                         sheet.Cells[1, 1].Value = Time_.ToString();
                         sheet.Cells[1, 2].Value = "Alex synced";
-                        goto finish;
+                        package.Save();
+                        goto finish_;
                     }
                     //---------------------------------------------------------
                     if (sheet.Cells[1, 2].Value.ToString() != "Alex synced")
@@ -9917,14 +9918,18 @@ namespace BoostYourBIM
 
                             if (thisValue != null)
                             {
+                                sheet.Cells[row, 1].Value = Time_.ToString();
+                                sheet.Cells[row, 2].Value = "Alex synced";
+                                package.Save();
                             }
                             else
                             {
-                                sheet.Cells[row, 1].Value = Time_.ToString();
-                                sheet.Cells[row, 2].Value = "Alex synced";
-                                goto start;
+                                package.Save();
+                                goto finder;
+
                             }
                         }
+                        
                     }
                     //---------------------------------------------------------
                     if (sheet.Cells[1, 2].Value.ToString() == "Alex synced")
@@ -9933,11 +9938,11 @@ namespace BoostYourBIM
                         package.Save();
                     }
 
-
                 //---------------------------------------------------------
 
-                finish:
-                    package.Save();
+                
+                    
+
                 }
             }
             catch (Exception)
@@ -9946,7 +9951,37 @@ namespace BoostYourBIM
                 //return;
                 args.Cancel();
             }
+
+            finder:
+            for (int i = 0; i < reset; i++)
+            {
+                if (i == 999999)
+                {
+                    string Sync_Manager = @"C:\Users\alopez\Documents\Sync_Manager.xlsx";
+                    using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
+                    {
+                        ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
+
+                        if (sheet.Cells[1, 1].Value != null && sheet.Cells[1, 2].Value.ToString() != "Alex synced")
+                        {
+                            goto finder;
+                        }
+                        else
+                        {
+                            break; 
+                        }
+                        
+                    }
+                }
+            }
+        finish_:;
+
+
+
+
+
         }
+
         public static void myDocumentSaved(object sender, DocumentSynchronizedWithCentralEventArgs args)
         {
             //try
