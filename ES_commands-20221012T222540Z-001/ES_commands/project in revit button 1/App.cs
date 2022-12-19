@@ -9874,6 +9874,9 @@ namespace BoostYourBIM
         static DateTime lastSaveTime;
         public static void myDocumentSaving(object sender, DocumentSynchronizingWithCentralEventArgs args)
         {
+            double reset = 1000000;
+            label:
+
             try
             {
                 string Sync_Manager = @"C:\Users\alopez\Documents\Sync_Manager.xlsx";
@@ -9893,96 +9896,27 @@ namespace BoostYourBIM
                         }
                     }
                     //---------------------------------------------------------
-                    if (sheet.Cells[1, 1].Value.ToString() == "Busy")
-                    {
-                        double reset = 1000000;
-                        label:
-
-                        for (int i = 0; i < reset; i++)
-                        {
-                            if (i == 999999)
-                            {
-                                try
-                                {
-                                    if (sheet.Cells[2, 2].Value == null)
-                                    {
-                                        //sheet.Cells[1, 1].Value = "Busy";
-                                        sheet.Cells[2, 2].Value = Time_;
-                                        sheet.Cells[2, 3].Value = "Alex synced";
-
-                                        goto finish;
-                                    }
-                                    if (sheet.Cells[2, 2].Value != null)
-                                    {
-                                        for (int row = 3; row < 9999; row++)
-                                        {
-                                            var thisValue = sheet.Cells[row, 1].Value;
-
-                                            if (thisValue != null)
-                                            {
-                                                break;
-                                            }
-                                            else
-                                            {
-                                                //sheet.Cells[1, 1].Value = "Busy";
-                                                sheet.Cells[2, 2].Value = Time_;
-                                                sheet.Cells[2, 3].Value = "Alex synced";
-
-                                                break;
-                                            }
-                                        }
-                                    }
-                                }
-                                catch (Exception)
-                                {
-                                    goto label;
-                                }
-                            }
-                        }
-                    }
-                    //---------------------------------------------------------
-                    if (sheet.Cells[1, 1].Value != null && sheet.Cells[1, 1].Value.ToString() == "Ready")
+                    if (sheet.Cells[1, 1].Value.ToString() == "Busy" && sheet.Cells[2, 3].Value.ToString() != "Alex synced")
                     {
                         for (int row = 2; row < 9999; row++)
                         {
-                            for (int col = 2; col < 9999; col++)
-                            {
-                                var thisValue = sheet.Cells[row, col].Value;
+                            var thisValue = sheet.Cells[row, 2].Value;
 
-                                if (thisValue == null)
-                                {
-                                    sheet.Cells[1, 1].Value = "Busy";
-                                    sheet.Cells[2, 2].Value = Time_;
-                                    sheet.Cells[2, 3].Value = "Alex synced";
-                                    break;
-                                }
+                            if (thisValue != null)
+                            {
+                            }
+                            else
+                            {
+                                //sheet.Cells[1, 1].Value = "Busy";
+                                sheet.Cells[row, 2].Value = Time_;
+                                sheet.Cells[row, 3].Value = "Alex synced";
+                                goto finish;
                             }
                         }
                     }
-                    else
+                    if (sheet.Cells[1, 1].Value.ToString() == "Busy" && sheet.Cells[2, 3].Value.ToString() == "Alex synced")
                     {
-                        sheet.Cells[1, 1].Value = "Busy";
-
-                        double reset = 1000000;
-                        label:
-
-                        for (int i = 0; i < reset; i++)
-                        {
-                            if (i == 999999)
-                            {
-                                for (int row = 2; row < 9999; row++)
-                                {
-                                    var thisValue = sheet.Cells[row, 2].Value;
-                                    if (thisValue == null)
-                                    {
-                                        sheet.Cells[2, 2].Value = Time_;
-                                        sheet.Cells[2, 3].Value = "Alex synced";
-                                        sheet.Cells[1, 1].Value = "Ready";
-                                        break;
-                                    }
-                                }
-                            }
-                        }
+                        sheet.DeleteRow(2,2);
                     }
 
                     finish:
@@ -10008,6 +9942,7 @@ namespace BoostYourBIM
                         if (sheet.Cells[2, 2].Value == null)
                         {
                             sheet.Cells[1, 1].Value = "Ready";
+                            package.Save();
                         }
                     }
                 }
