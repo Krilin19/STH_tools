@@ -9874,9 +9874,10 @@ namespace BoostYourBIM
         static DateTime lastSaveTime;
         public static void myDocumentSaving(object sender, DocumentSynchronizingWithCentralEventArgs args)
         {
-            double reset = 1000000;
-            label:
-
+            //double reset = 1000000;
+            //label:
+            start:
+            string s = "People syncing:" + "\n";
             try
             {
                 string Sync_Manager = @"C:\Users\alopez\Documents\Sync_Manager.xlsx";
@@ -9885,18 +9886,30 @@ namespace BoostYourBIM
                     ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
                     var Time_ = DateTime.Now;
                     //---------------------------------------------------------
-                    if (sheet.Cells[1, 1].Value.ToString() == "Ready")
+                    for (int row = 1; row < 20; row++)
                     {
-                        if (sheet.Cells[2, 2].Value == null)
+                        
+                        if (sheet.Cells[row, 1].Value != null)
                         {
-                            sheet.Cells[1, 1].Value = "Busy";
-                            sheet.Cells[2, 2].Value = Time_;
-                            sheet.Cells[2, 3].Value = "Alex synced";
-                            goto finish;
+                            var Value1 = sheet.Cells[row, 1].Value;
+                            var Value2 = sheet.Cells[row, 2].Value;
+                            s += Value1 + " + " + Value2.ToString() + "\n";
+                        }
+                        else
+                        {
+                            break;
                         }
                     }
+                    //TaskDialog.Show("Basic Element Info", s);
                     //---------------------------------------------------------
-                    if (sheet.Cells[1, 1].Value.ToString() == "Busy" && sheet.Cells[2, 3].Value.ToString() != "Alex synced")
+                    if (sheet.Cells[1, 1].Value == null)
+                    {
+                        sheet.Cells[1, 1].Value = Time_.ToString();
+                        sheet.Cells[1, 2].Value = "Alex synced";
+                        goto finish;
+                    }
+                    //---------------------------------------------------------
+                    if (sheet.Cells[1, 2].Value.ToString() != "Alex synced")
                     {
                         for (int row = 2; row < 9999; row++)
                         {
@@ -9907,51 +9920,54 @@ namespace BoostYourBIM
                             }
                             else
                             {
-                                //sheet.Cells[1, 1].Value = "Busy";
-                                sheet.Cells[row, 2].Value = Time_;
-                                sheet.Cells[row, 3].Value = "Alex synced";
-                                goto finish;
+                                sheet.Cells[row, 1].Value = Time_.ToString();
+                                sheet.Cells[row, 2].Value = "Alex synced";
+                                goto start;
                             }
                         }
                     }
-                    if (sheet.Cells[1, 1].Value.ToString() == "Busy" && sheet.Cells[2, 3].Value.ToString() == "Alex synced")
+                    //---------------------------------------------------------
+                    if (sheet.Cells[1, 2].Value.ToString() == "Alex synced")
                     {
-                        sheet.DeleteRow(2,2);
+                        sheet.DeleteRow(1, 1);
+                        package.Save();
                     }
 
-                    finish:
+
+                //---------------------------------------------------------
+
+                finish:
                     package.Save();
                 }
             }
             catch (Exception)
             {
                 MessageBox.Show("Excel file not found", "");
-                return;
+                //return;
+                args.Cancel();
             }
         }
         public static void myDocumentSaved(object sender, DocumentSynchronizedWithCentralEventArgs args)
         {
-            try
-            {
-                string Sync_Manager = @"C:\Users\alopez\Documents\Sync_Manager.xlsx";
-                using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
-                {
-                    ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
-                    if (sheet.Cells[1, 1].Value.ToString() == "Busy")
-                    {
-                        if (sheet.Cells[2, 2].Value == null)
-                        {
-                            sheet.Cells[1, 1].Value = "Ready";
-                            package.Save();
-                        }
-                    }
-                }
-            }
-            catch (Exception)
-            {
-                MessageBox.Show("Excel file not found", "");
-                return;
-            }
+            //try
+            //{
+            //    string Sync_Manager = @"C:\Users\alopez\Documents\Sync_Manager.xlsx";
+            //    using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
+            //    {
+            //        ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
+            //        if (sheet.Cells[1, 2].Value.ToString() == "Alex synced")
+            //        {
+            //            sheet.DeleteRow(1, 1);
+            //            package.Save();
+            //        }
+
+            //    }
+            //}
+            //catch (Exception)
+            //{
+            //    //MessageBox.Show("Excel file not found", "");
+            //    //return;
+            //}
         }
         public static void idleUpdate(object sender, IdlingEventArgs e)
         {
