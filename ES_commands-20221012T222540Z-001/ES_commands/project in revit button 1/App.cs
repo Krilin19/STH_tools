@@ -36,6 +36,9 @@ using System.IO.Packaging;
 using ES_commands;
 using System.Windows.Controls;
 using System.Threading.Tasks;
+using Rhino.UI;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using System.Timers;
 
 namespace BoostYourBIM
 {
@@ -9847,6 +9850,31 @@ namespace BoostYourBIM
     {
         static AddInId appId = new AddInId(new Guid("6C22CC72-A167-4819-AAF1-A178F6B44BAB"));
         static public Autodesk.Revit.ApplicationServices.Application m_app;
+
+        public System.Timers.Timer timer;
+        public int h, m, s;
+        public void CountdownTimer_Load(object sender, EventArgs e)
+        {
+            timer = new System.Timers.Timer();
+            timer.Interval = 100;
+            timer.Elapsed += OnTimeEvent;
+        }
+        public void OnTimeEvent(object sender, ElapsedEventArgs e)
+        {
+            s += 1;
+            if (s == 60)
+            {
+                s = 0;
+                m += 1;
+            }
+            if (m == 60)
+            {
+                m = 0;
+                h += 1;
+            }
+
+        }
+
         public Autodesk.Revit.UI.Result Execute(ExternalCommandData commandData, ref string message, ElementSet elementSet)
         {
             UIDocument uidoc = commandData.Application.ActiveUIDocument;
@@ -9854,6 +9882,188 @@ namespace BoostYourBIM
             //m_app.DocumentSynchronizingWithCentral += new EventHandler<DocumentSynchronizingWithCentralEventArgs>(myCommand.myDocumentSaving);
             //return Autodesk.Revit.UI.Result.Succeeded;
             //doc.DocumentSaving += new EventHandler<DocumentSavingEventArgs>(myCommand.myDocumentSaving);
+
+            
+            double reset = 10000000;
+            SyncListUpdater SyncListUpdater_ = new SyncListUpdater();
+
+            string user = doc.Application.Username;
+
+            string s = "People syncing:" + "\n";
+            try
+            {
+                string Sync_Manager = @"T:\Lopez\Sync_Manager.xlsx";
+                using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
+                {
+                    ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
+                    var Time_ = DateTime.Now;
+                    //---------------------------------------------------------
+                    for (int row = 1; row < 20; row++)
+                    {
+                        if (sheet.Cells[row, 1].Value == null)
+                        {
+                            break;
+                        }
+                        if (sheet.Cells[row, 1].Value != null)
+                        {
+                            var Value1 = sheet.Cells[row, 1].Value;
+                            var Value2 = sheet.Cells[row, 2].Value;
+                            //s += Value1 + " + " + Value2.ToString() + "\n";
+                            SyncListUpdater_.listBox1.Items.Add(Value1 + " + " + Value2.ToString() + "\n");
+                        }
+
+                    }
+
+                    SyncListUpdater_.Show();
+
+                    //TaskDialog.Show("Current Sync List ", s);
+                    //MessageBox.Show("Current Sync List ", "");
+
+
+                    //---------------------------------------------------------
+                    if (sheet.Cells[1, 1].Value == null)
+                    {
+                        sheet.Cells[1, 1].Value = Time_.ToString();
+                        sheet.Cells[1, 2].Value = user;
+                        package.Save();
+                        goto finish_;
+                    }
+                    //---------------------------------------------------------
+                    if (sheet.Cells[1, 2].Value.ToString() != "Alex synced")
+                    {
+                        for (int row = 1; row < 9999; row++)
+                        {
+                            var thisValue = sheet.Cells[row, 1].Value;
+
+                            if (thisValue == null)
+                            {
+                                sheet.Cells[row, 1].Value = Time_.ToString();
+                                sheet.Cells[row, 2].Value = user;
+                                package.Save();
+                                goto finder;
+                            }
+                            else
+                            {
+
+
+                            }
+                        }
+                    }
+                    //---------------------------------------------------------
+
+                    //---------------------------------------------------------
+                }
+            }
+            catch (Exception)
+            {
+                MessageBox.Show("Excel file not found", "");
+                //return;
+                
+            }
+        finder:
+            for (int i = 0; i < reset; i++)
+            {
+                if (i == 9999999)
+                {
+                    try
+                    {
+                        SyncListUpdater_.listBox1.Items.Clear();
+                        string Sync_Manager = @"T:\Lopez\Sync_Manager.xlsx";
+                        using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
+                        {
+                            ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
+
+                            for (int row = 1; row < 20; row++)
+                            {
+                                if (sheet.Cells[row, 1].Value == null)
+                                {
+                                    break;
+                                }
+                                if (sheet.Cells[row, 1].Value != null)
+                                {
+                                    var Value1 = sheet.Cells[row, 1].Value;
+                                    var Value2 = sheet.Cells[row, 2].Value;
+
+                                    SyncListUpdater_.listBox1.Items.Add(Value1 + " + " + Value2.ToString());
+                                }
+
+                            }
+
+                            if (sheet.Cells[1, 1].Value != null && sheet.Cells[1, 2].Value.ToString() != user)
+                            {
+                                SyncListUpdater_.listBox1.Refresh();
+                                SyncListUpdater_.listBox1.Update();
+                                goto finder;
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+                    }
+                    catch (Exception)
+                    {
+
+                        goto finder;
+
+                    }
+                }
+            }
+
+            Timer timer1 = new Timer
+            {
+                Interval = 2000
+            };
+            timer1.Enabled = true;
+            timer1.Tick += new System.EventHandler(OnTimerEvent);
+
+            CountdownTimer timer = new CountdownTimer();
+            timer.Show();
+            OnTimeEvent();
+            
+
+
+        finish_:;
+
+            if (m > 2)
+            {
+                SyncListUpdater_.Close();
+                //timer_();
+
+                TransactWithCentralOptions transact = new TransactWithCentralOptions();
+                SynchronizeWithCentralOptions synch = new SynchronizeWithCentralOptions();
+                //synch.Comment = "Autosaved by the API at " + DateTime.Now;
+                RelinquishOptions relinquishOptions = new RelinquishOptions(true);
+                relinquishOptions.CheckedOutElements = true;
+                synch.SetRelinquishOptions(relinquishOptions);
+
+                //uiApp.Application.WriteJournalComment("AutoSave To Central", true);
+                doc.SynchronizeWithCentral(transact, synch);
+
+
+                try
+                {
+                    string Sync_Manager = @"T:\Lopez\Sync_Manager.xlsx";
+                    using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
+                    {
+                        ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
+                        if (sheet.Cells[1, 2].Value.ToString() == user)
+                        {
+                            sheet.DeleteRow(1, 1);
+                            package.Save();
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    //MessageBox.Show("Excel file not found", "");
+                    //return;
+                }
+                //lastSaveTime = DateTime.Now;
+            }
+
+
+
             return Autodesk.Revit.UI.Result.Succeeded;
         }
     }
@@ -9862,6 +10072,7 @@ namespace BoostYourBIM
         static DateTime lastSaveTime;
         public static void myDocumentSaving(object sender, DocumentSynchronizingWithCentralEventArgs args)
         {
+           
             double reset = 10000000;
             SyncListUpdater SyncListUpdater_ = new SyncListUpdater();
 
@@ -9987,13 +10198,15 @@ namespace BoostYourBIM
                     }
                 }
             }
-            CountdownTimer timer = new CountdownTimer();
-            timer.Show();
+            //CountdownTimer timer = new CountdownTimer();
+            //timer.Show();
             
             finish_:;
             SyncListUpdater_.Close();
             //timer_();
-             
+
+
+         
         }
 
        
