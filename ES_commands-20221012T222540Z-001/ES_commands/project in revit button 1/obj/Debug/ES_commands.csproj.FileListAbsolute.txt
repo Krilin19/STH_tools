@@ -516,3 +516,4 @@ C:\Users\alopez\Source\Repos\Krilin19\STH_tools\ES_commands-20221012T222540Z-001
 C:\Users\alopez\Source\Repos\Krilin19\STH_tools\ES_commands-20221012T222540Z-001\ES_commands\project in revit button 1\obj\Debug\ES_commands.csproj.CopyComplete
 C:\Users\alopez\Source\Repos\Krilin19\STH_tools\ES_commands-20221012T222540Z-001\ES_commands\project in revit button 1\obj\Debug\ES_commands.dll
 C:\Users\alopez\Source\Repos\Krilin19\STH_tools\ES_commands-20221012T222540Z-001\ES_commands\project in revit button 1\obj\Debug\ES_commands.pdb
+C:\Users\alopez\Source\Repos\Krilin19\STH_tools\ES_commands-20221012T222540Z-001\ES_commands\project in revit button 1\obj\Debug\ES_commands.SyncListUpdater.resources

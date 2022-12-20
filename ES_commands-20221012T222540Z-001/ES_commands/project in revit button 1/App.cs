@@ -33,6 +33,8 @@ using System.Net.NetworkInformation;
 using System.Runtime.CompilerServices;
 using Microsoft.Win32;
 using System.IO.Packaging;
+using ES_commands;
+using System.Windows.Controls;
 
 namespace BoostYourBIM
 {
@@ -47,22 +49,6 @@ namespace BoostYourBIM
            
 
 
-            //try
-            //{
-            //    string filename = @"T:\Transfer\lopez\Book1.xlsx";
-            //    using (ExcelPackage package = new ExcelPackage(new FileInfo(filename)))
-            //    {
-            //        ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
-
-            //        int number = Convert.ToInt32(sheet.Cells[2, 1].Value);
-            //        sheet.Cells[2, 1].Value = (number + 1); ;
-            //        package.Save();
-            //    }
-            //}
-            //catch (Exception)
-            //{
-            //    MessageBox.Show("Excel file not found", "");
-            //}
 
 
             //---------------------------------------- FILTERS ------------------------------------
@@ -83,6 +69,7 @@ namespace BoostYourBIM
             List<ViewSchedule> ViewSchedule_LIST = new List<ViewSchedule>();
             List<string> gourpheader_list = new List<string>();
 
+            
             Form13 form2 = new Form13();
 
             form2.comboBox1.Items.Add("Plans");
@@ -9875,7 +9862,9 @@ namespace BoostYourBIM
         public static void myDocumentSaving(object sender, DocumentSynchronizingWithCentralEventArgs args)
         {
             double reset = 1000000;
-        
+            SyncListUpdater SyncListUpdater_ = new SyncListUpdater();
+
+
 
             string s = "People syncing:" + "\n";
             try
@@ -9888,19 +9877,26 @@ namespace BoostYourBIM
                     //---------------------------------------------------------
                     for (int row = 1; row < 20; row++)
                     {
-
+                        if (sheet.Cells[row, 1].Value == null)
+                        {
+                            break;
+                        }
                         if (sheet.Cells[row, 1].Value != null)
                         {
                             var Value1 = sheet.Cells[row, 1].Value;
                             var Value2 = sheet.Cells[row, 2].Value;
-                            s += Value1 + " + " + Value2.ToString() + "\n";
+                            //s += Value1 + " + " + Value2.ToString() + "\n";
+                            SyncListUpdater_.listBox1.Items.Add(Value1 + " + " + Value2.ToString() + "\n");
                         }
-                        else
-                        {
-                            break;
-                        }
+
                     }
-                    //TaskDialog.Show("Basic Element Info", s);
+
+                    SyncListUpdater_.Show();
+                        
+                    //TaskDialog.Show("Current Sync List ", s);
+                    //MessageBox.Show("Current Sync List ", "");
+
+
                     //---------------------------------------------------------
                     if (sheet.Cells[1, 1].Value == null)
                     {
@@ -9912,37 +9908,27 @@ namespace BoostYourBIM
                     //---------------------------------------------------------
                     if (sheet.Cells[1, 2].Value.ToString() != "Alex synced")
                     {
-                        for (int row = 2; row < 9999; row++)
+                        for (int row = 1; row < 9999; row++)
                         {
-                            var thisValue = sheet.Cells[row, 2].Value;
+                            var thisValue = sheet.Cells[row, 1].Value;
 
-                            if (thisValue != null)
+                            if (thisValue == null)
                             {
                                 sheet.Cells[row, 1].Value = Time_.ToString();
                                 sheet.Cells[row, 2].Value = "Alex synced";
                                 package.Save();
+                                goto finder;
                             }
                             else
                             {
-                                package.Save();
-                                goto finder;
-
+                              
+                               
                             }
                         }
-                        
                     }
                     //---------------------------------------------------------
-                    if (sheet.Cells[1, 2].Value.ToString() == "Alex synced")
-                    {
-                        sheet.DeleteRow(1, 1);
-                        package.Save();
-                    }
-
-                //---------------------------------------------------------
-
-                
                     
-
+                //---------------------------------------------------------
                 }
             }
             catch (Exception)
@@ -9951,58 +9937,74 @@ namespace BoostYourBIM
                 //return;
                 args.Cancel();
             }
-
             finder:
             for (int i = 0; i < reset; i++)
             {
                 if (i == 999999)
                 {
+                    SyncListUpdater_.listBox1.Items.Clear();
                     string Sync_Manager = @"C:\Users\alopez\Documents\Sync_Manager.xlsx";
                     using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
                     {
                         ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
 
+                        for (int row = 1; row < 20; row++)
+                        {
+                            if (sheet.Cells[row, 1].Value == null)
+                            {
+                                break;
+                            }
+                            if (sheet.Cells[row, 1].Value != null)
+                            {
+                                var Value1 = sheet.Cells[row, 1].Value;
+                                var Value2 = sheet.Cells[row, 2].Value;
+
+                                SyncListUpdater_.listBox1.Items.Add(Value1 + " + " + Value2.ToString() );
+                            }
+
+                        }
+
                         if (sheet.Cells[1, 1].Value != null && sheet.Cells[1, 2].Value.ToString() != "Alex synced")
                         {
+                            SyncListUpdater_.listBox1.Refresh();
+                            SyncListUpdater_.listBox1.Update();
                             goto finder;
                         }
                         else
                         {
                             break; 
                         }
-                        
                     }
                 }
             }
+
+
         finish_:;
-
-
-
-
-
+            SyncListUpdater_.Close();
         }
-
         public static void myDocumentSaved(object sender, DocumentSynchronizedWithCentralEventArgs args)
         {
-            //try
-            //{
-            //    string Sync_Manager = @"C:\Users\alopez\Documents\Sync_Manager.xlsx";
-            //    using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
-            //    {
-            //        ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
-            //        if (sheet.Cells[1, 2].Value.ToString() == "Alex synced")
-            //        {
-            //            sheet.DeleteRow(1, 1);
-            //            package.Save();
-            //        }
 
-            //    }
-            //}
-            //catch (Exception)
-            //{
-            //    //MessageBox.Show("Excel file not found", "");
-            //    //return;
-            //}
+            SyncListUpdater SyncListUpdater_ = new SyncListUpdater();
+            try
+            {
+                string Sync_Manager = @"C:\Users\alopez\Documents\Sync_Manager.xlsx";
+                using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
+                {
+                    ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
+                    if (sheet.Cells[1, 2].Value.ToString() == "Alex synced")
+                    {
+                        sheet.DeleteRow(1, 1);
+                        package.Save();
+                    }
+
+                }
+            }
+            catch (Exception)
+            {
+                //MessageBox.Show("Excel file not found", "");
+                //return;
+            }
         }
         public static void idleUpdate(object sender, IdlingEventArgs e)
         {

@@ -264,6 +264,12 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="SyncListUpdater.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SyncListUpdater.Designer.cs">
+      <DependentUpon>SyncListUpdater.cs</DependentUpon>
+    </Compile>
     <Compile Include="User_interfac_custom_buttons.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -393,6 +399,9 @@
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SyncListUpdater.resx">
+      <DependentUpon>SyncListUpdater.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="User_interfac_custom_buttons.resx">
       <DependentUpon>User_interfac_custom_buttons.cs</DependentUpon>
