@@ -96,6 +96,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="App.cs" />
+    <Compile Include="CountdownTimer.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="CountdownTimer.Designer.cs">
+      <DependentUpon>CountdownTimer.cs</DependentUpon>
+    </Compile>
     <Compile Include="Filter for exporter.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -315,6 +321,9 @@
     <None Include="Resources\logo ajc2.jpg" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="CountdownTimer.resx">
+      <DependentUpon>CountdownTimer.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Filter for exporter.resx">
       <DependentUpon>Filter for exporter.cs</DependentUpon>
     </EmbeddedResource>

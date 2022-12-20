@@ -35,6 +35,7 @@ using Microsoft.Win32;
 using System.IO.Packaging;
 using ES_commands;
 using System.Windows.Controls;
+using System.Threading.Tasks;
 
 namespace BoostYourBIM
 {
@@ -9861,7 +9862,7 @@ namespace BoostYourBIM
         static DateTime lastSaveTime;
         public static void myDocumentSaving(object sender, DocumentSynchronizingWithCentralEventArgs args)
         {
-            double reset = 1000000;
+            double reset = 10000000;
             SyncListUpdater SyncListUpdater_ = new SyncListUpdater();
 
             string user = args.Document.Application.Username;
@@ -9869,7 +9870,7 @@ namespace BoostYourBIM
             string s = "People syncing:" + "\n";
             try
             {
-                string Sync_Manager = @"C:\Users\alopez\Documents\Sync_Manager.xlsx";
+                string Sync_Manager = @"T:\Lopez\Sync_Manager.xlsx";
                 using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
                 {
                     ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
@@ -9940,12 +9941,12 @@ namespace BoostYourBIM
             finder:
             for (int i = 0; i < reset; i++)
             {
-                if (i == 999999)
+                if (i == 9999999)
                 {
                     try
                     {
                         SyncListUpdater_.listBox1.Items.Clear();
-                        string Sync_Manager = @"C:\Users\alopez\Documents\Sync_Manager.xlsx";
+                        string Sync_Manager = @"T:\Lopez\Sync_Manager.xlsx";
                         using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
                         {
                             ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
@@ -9966,7 +9967,7 @@ namespace BoostYourBIM
 
                             }
 
-                            if (sheet.Cells[1, 1].Value != null && sheet.Cells[1, 2].Value.ToString() != "Alex synced")
+                            if (sheet.Cells[1, 1].Value != null && sheet.Cells[1, 2].Value.ToString() != user)
                             {
                                 SyncListUpdater_.listBox1.Refresh();
                                 SyncListUpdater_.listBox1.Update();
@@ -9986,18 +9987,24 @@ namespace BoostYourBIM
                     }
                 }
             }
-
-
-        finish_:;
+            CountdownTimer timer = new CountdownTimer();
+            timer.Show();
+            
+            finish_:;
             SyncListUpdater_.Close();
+            //timer_();
+             
         }
+
+       
         public static void myDocumentSaved(object sender, DocumentSynchronizedWithCentralEventArgs args)
         {
+
             string user = args.Document.Application.Username;
             SyncListUpdater SyncListUpdater_ = new SyncListUpdater();
             try
             {
-                string Sync_Manager = @"C:\Users\alopez\Documents\Sync_Manager.xlsx";
+                string Sync_Manager = @"T:\Lopez\Sync_Manager.xlsx";
                 using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
                 {
                     ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
@@ -10006,7 +10013,6 @@ namespace BoostYourBIM
                         sheet.DeleteRow(1, 1);
                         package.Save();
                     }
-
                 }
             }
             catch (Exception)
@@ -10015,6 +10021,7 @@ namespace BoostYourBIM
                 //return;
             }
         }
+       
         public static void idleUpdate(object sender, IdlingEventArgs e)
         {
             // set an initial value for the last saved time
