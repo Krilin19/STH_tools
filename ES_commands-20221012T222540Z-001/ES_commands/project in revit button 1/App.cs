@@ -1417,7 +1417,7 @@ namespace BoostYourBIM
         {
             Element e = doc.GetElement(r);
             Parameter p = null;
-            if (e is Grid)
+            if (e is Autodesk.Revit.DB.Grid)
                 p = e.LookupParameter("Name");
             else if (e is Room)
                 p = e.LookupParameter("Number");
@@ -1525,7 +1525,7 @@ namespace BoostYourBIM
 
             TaskDialog.Show("!", "Select a reference Grid to find orthogonal walls");
 
-            Grid levelBelow = doc.GetElement(uidoc.Selection.PickObject(ObjectType.Element, "Select Grid")) as Grid;
+            Autodesk.Revit.DB.Grid levelBelow = doc.GetElement(uidoc.Selection.PickObject(ObjectType.Element, "Select Grid")) as Autodesk.Revit.DB.Grid;
 
             Autodesk.Revit.DB.Curve dircurve = levelBelow.Curve;
             Autodesk.Revit.DB.Line line = dircurve as Autodesk.Revit.DB.Line;
@@ -1650,8 +1650,8 @@ namespace BoostYourBIM
 
             List<Viewport> viewports = new List<Viewport>();
             List<ElementId> views = new List<ElementId>();
-            List<Grid> g_list = new List<Grid>();
-            List<Grid> tblock_list = new List<Grid>();
+            List<Autodesk.Revit.DB.Grid> g_list = new List<Autodesk.Revit.DB.Grid>();
+            List<Autodesk.Revit.DB.Grid> tblock_list = new List<Autodesk.Revit.DB.Grid>();
             FamilySymbol FamilySymbol = null;
             IList<Element> ElementsOnSheet = new List<Element>();
 
@@ -1674,7 +1674,7 @@ namespace BoostYourBIM
 
                 views.Add(item);
             }
-            foreach (Grid item in Grid_list)
+            foreach (Autodesk.Revit.DB.Grid item in Grid_list)
             {
                 g_list.Add(item);
             }
@@ -1756,7 +1756,7 @@ namespace BoostYourBIM
 
                 if (form.checkBox4.Checked)
                 {
-                    foreach (Grid item in g_list)
+                    foreach (Autodesk.Revit.DB.Grid item in g_list)
                     {
                         string upper = item.Name.ToUpper();
                         item.Name = upper;
@@ -2828,7 +2828,7 @@ namespace BoostYourBIM
 
                                 Autodesk.Revit.DB.Curve curve1 = Autodesk.Revit.DB.Line.CreateBound(pt_end, pt_start);
                                 Autodesk.Revit.DB.Line line = Autodesk.Revit.DB.Line.CreateBound(pt_end, pt_start);
-                                Grid lineGrid = Grid.Create(doc, line);
+                                Autodesk.Revit.DB.Grid lineGrid = Autodesk.Revit.DB.Grid.Create(doc, line);
 
                                 revit_crv.Add(curve1);
 
@@ -8168,12 +8168,12 @@ namespace BoostYourBIM
             List<Double> crvssort = new List<Double>();
 
 
-            FilteredElementCollector colGrids = new FilteredElementCollector(doc).WhereElementIsNotElementType().OfCategory(BuiltInCategory.OST_Grids).OfClass(typeof(Grid));
+            FilteredElementCollector colGrids = new FilteredElementCollector(doc).WhereElementIsNotElementType().OfCategory(BuiltInCategory.OST_Grids).OfClass(typeof(Autodesk.Revit.DB.Grid));
 
 
             foreach (var grid   in colGrids)
             {
-                Grid gcurve = grid as Grid;
+                Autodesk.Revit.DB.Grid gcurve = grid as Autodesk.Revit.DB.Grid;
                 
                 Autodesk.Revit.DB.Curve line1 = gcurve.Curve;
 
@@ -9697,7 +9697,7 @@ namespace BoostYourBIM
             IList<Reference> refList = new List<Reference>();
 
             TaskDialog.Show("!", "Select a reference Grid to find orthogonal walls");
-                Grid levelBelow = doc.GetElement(uidoc.Selection.PickObject(ObjectType.Element, "Select Grid")) as Grid;
+            Autodesk.Revit.DB.Grid levelBelow = doc.GetElement(uidoc.Selection.PickObject(ObjectType.Element, "Select Grid")) as Autodesk.Revit.DB.Grid;
 
             Autodesk.Revit.DB.Curve dircurve = levelBelow.Curve;
             Autodesk.Revit.DB.Line Grid_line = dircurve as Autodesk.Revit.DB.Line;
@@ -9864,7 +9864,7 @@ namespace BoostYourBIM
             double reset = 1000000;
             SyncListUpdater SyncListUpdater_ = new SyncListUpdater();
 
-
+            string user = args.Document.Application.Username;
 
             string s = "People syncing:" + "\n";
             try
@@ -9901,7 +9901,7 @@ namespace BoostYourBIM
                     if (sheet.Cells[1, 1].Value == null)
                     {
                         sheet.Cells[1, 1].Value = Time_.ToString();
-                        sheet.Cells[1, 2].Value = "Alex synced";
+                        sheet.Cells[1, 2].Value = user;
                         package.Save();
                         goto finish_;
                     }
@@ -9915,7 +9915,7 @@ namespace BoostYourBIM
                             if (thisValue == null)
                             {
                                 sheet.Cells[row, 1].Value = Time_.ToString();
-                                sheet.Cells[row, 2].Value = "Alex synced";
+                                sheet.Cells[row, 2].Value = user;
                                 package.Save();
                                 goto finder;
                             }
@@ -9942,38 +9942,47 @@ namespace BoostYourBIM
             {
                 if (i == 999999)
                 {
-                    SyncListUpdater_.listBox1.Items.Clear();
-                    string Sync_Manager = @"C:\Users\alopez\Documents\Sync_Manager.xlsx";
-                    using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
+                    try
                     {
-                        ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
-
-                        for (int row = 1; row < 20; row++)
+                        SyncListUpdater_.listBox1.Items.Clear();
+                        string Sync_Manager = @"C:\Users\alopez\Documents\Sync_Manager.xlsx";
+                        using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
                         {
-                            if (sheet.Cells[row, 1].Value == null)
+                            ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
+
+                            for (int row = 1; row < 20; row++)
+                            {
+                                if (sheet.Cells[row, 1].Value == null)
+                                {
+                                    break;
+                                }
+                                if (sheet.Cells[row, 1].Value != null)
+                                {
+                                    var Value1 = sheet.Cells[row, 1].Value;
+                                    var Value2 = sheet.Cells[row, 2].Value;
+
+                                    SyncListUpdater_.listBox1.Items.Add(Value1 + " + " + Value2.ToString());
+                                }
+
+                            }
+
+                            if (sheet.Cells[1, 1].Value != null && sheet.Cells[1, 2].Value.ToString() != "Alex synced")
+                            {
+                                SyncListUpdater_.listBox1.Refresh();
+                                SyncListUpdater_.listBox1.Update();
+                                goto finder;
+                            }
+                            else
                             {
                                 break;
                             }
-                            if (sheet.Cells[row, 1].Value != null)
-                            {
-                                var Value1 = sheet.Cells[row, 1].Value;
-                                var Value2 = sheet.Cells[row, 2].Value;
-
-                                SyncListUpdater_.listBox1.Items.Add(Value1 + " + " + Value2.ToString() );
-                            }
-
                         }
+                    }
+                    catch (Exception)
+                    {
 
-                        if (sheet.Cells[1, 1].Value != null && sheet.Cells[1, 2].Value.ToString() != "Alex synced")
-                        {
-                            SyncListUpdater_.listBox1.Refresh();
-                            SyncListUpdater_.listBox1.Update();
-                            goto finder;
-                        }
-                        else
-                        {
-                            break; 
-                        }
+                        goto finder;
+
                     }
                 }
             }
@@ -9984,7 +9993,7 @@ namespace BoostYourBIM
         }
         public static void myDocumentSaved(object sender, DocumentSynchronizedWithCentralEventArgs args)
         {
-
+            string user = args.Document.Application.Username;
             SyncListUpdater SyncListUpdater_ = new SyncListUpdater();
             try
             {
@@ -9992,7 +10001,7 @@ namespace BoostYourBIM
                 using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
                 {
                     ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
-                    if (sheet.Cells[1, 2].Value.ToString() == "Alex synced")
+                    if (sheet.Cells[1, 2].Value.ToString() == user)
                     {
                         sheet.DeleteRow(1, 1);
                         package.Save();
@@ -10034,6 +10043,7 @@ namespace BoostYourBIM
             uiApp.Application.WriteJournalComment("AutoSave To Central", true);
             doc.SynchronizeWithCentral(transact, synch);
             lastSaveTime = DateTime.Now;
+            
         }
         
     }
