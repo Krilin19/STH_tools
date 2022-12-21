@@ -9890,6 +9890,8 @@ namespace BoostYourBIM
             string user = doc.Application.Username;
 
             string s = "People syncing:" + "\n";
+
+            beggining:
             try
             {
                 string Sync_Manager = @"T:\Lopez\Sync_Manager.xlsx";
@@ -9919,15 +9921,23 @@ namespace BoostYourBIM
                     //TaskDialog.Show("Current Sync List ", s);
                     //MessageBox.Show("Current Sync List ", "");
 
-
+                    nonvalue:
                     //---------------------------------------------------------
-                    if (sheet.Cells[1, 1].Value == null)
+                    try
                     {
-                        sheet.Cells[1, 1].Value = Time_.ToString();
-                        sheet.Cells[1, 2].Value = user;
-                        package.Save();
-                        goto finish_;
+                        if (sheet.Cells[1, 1].Value == null)
+                        {
+                            sheet.Cells[1, 1].Value = Time_.ToString();
+                            sheet.Cells[1, 2].Value = user;
+                            package.Save();
+                            goto finish_;
+                        }
                     }
+                    catch (Exception)
+                    {
+                        goto nonvalue;
+                    }
+                    
                     //---------------------------------------------------------
                     if (sheet.Cells[1, 2].Value.ToString() != "Alex synced")
                     {
@@ -9956,8 +9966,9 @@ namespace BoostYourBIM
             }
             catch (Exception)
             {
-                MessageBox.Show("Excel file not found", "");
+                //MessageBox.Show("Excel file not found", "");
                 //return;
+                goto beggining;
                 
             }
         finder:
@@ -10010,222 +10021,50 @@ namespace BoostYourBIM
                 }
             }
 
-            Timer timer1 = new Timer
-            {
-                Interval = 2000
-            };
-            timer1.Enabled = true;
-            timer1.Tick += new System.EventHandler(OnTimerEvent);
+            //System.Timers.Timer timer1 = new System.Timers.Timer
+            //{
+            //    Interval = 2000
+            //};
+            //timer1.Enabled = true;
+            //timer1.Tick += new System.EventHandler(OnTimerEvent);
 
-            CountdownTimer timer = new CountdownTimer();
-            timer.Show();
-            OnTimeEvent();
+            //CountdownTimer timer = new CountdownTimer();
+            //timer.Show();
+            //OnTimeEvent();
             
 
 
         finish_:;
 
-            if (m > 2)
+            SyncListUpdater_.Close();
+            //timer_();
+
+            TransactWithCentralOptions transact = new TransactWithCentralOptions();
+            SynchronizeWithCentralOptions synch = new SynchronizeWithCentralOptions();
+            //synch.Comment = "Autosaved by the API at " + DateTime.Now;
+            RelinquishOptions relinquishOptions = new RelinquishOptions(true);
+            relinquishOptions.CheckedOutElements = true;
+            synch.SetRelinquishOptions(relinquishOptions);
+
+            //uiApp.Application.WriteJournalComment("AutoSave To Central", true);
+            doc.SynchronizeWithCentral(transact, synch);
+
+
+            try
             {
-                SyncListUpdater_.Close();
-                //timer_();
-
-                TransactWithCentralOptions transact = new TransactWithCentralOptions();
-                SynchronizeWithCentralOptions synch = new SynchronizeWithCentralOptions();
-                //synch.Comment = "Autosaved by the API at " + DateTime.Now;
-                RelinquishOptions relinquishOptions = new RelinquishOptions(true);
-                relinquishOptions.CheckedOutElements = true;
-                synch.SetRelinquishOptions(relinquishOptions);
-
-                //uiApp.Application.WriteJournalComment("AutoSave To Central", true);
-                doc.SynchronizeWithCentral(transact, synch);
-
-
-                try
+                string Sync_Manager = @"T:\Lopez\Sync_Manager.xlsx";
+                using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
                 {
-                    string Sync_Manager = @"T:\Lopez\Sync_Manager.xlsx";
-                    using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
+                    ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
+                    if (sheet.Cells[1, 2].Value != null)
                     {
-                        ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
                         if (sheet.Cells[1, 2].Value.ToString() == user)
                         {
                             sheet.DeleteRow(1, 1);
                             package.Save();
                         }
                     }
-                }
-                catch (Exception)
-                {
-                    //MessageBox.Show("Excel file not found", "");
-                    //return;
-                }
-                //lastSaveTime = DateTime.Now;
-            }
-
-
-
-            return Autodesk.Revit.UI.Result.Succeeded;
-        }
-    }
-    public static class myCommand
-    {
-        static DateTime lastSaveTime;
-        public static void myDocumentSaving(object sender, DocumentSynchronizingWithCentralEventArgs args)
-        {
-           
-            double reset = 10000000;
-            SyncListUpdater SyncListUpdater_ = new SyncListUpdater();
-
-            string user = args.Document.Application.Username;
-
-            string s = "People syncing:" + "\n";
-            try
-            {
-                string Sync_Manager = @"T:\Lopez\Sync_Manager.xlsx";
-                using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
-                {
-                    ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
-                    var Time_ = DateTime.Now;
-                    //---------------------------------------------------------
-                    for (int row = 1; row < 20; row++)
-                    {
-                        if (sheet.Cells[row, 1].Value == null)
-                        {
-                            break;
-                        }
-                        if (sheet.Cells[row, 1].Value != null)
-                        {
-                            var Value1 = sheet.Cells[row, 1].Value;
-                            var Value2 = sheet.Cells[row, 2].Value;
-                            //s += Value1 + " + " + Value2.ToString() + "\n";
-                            SyncListUpdater_.listBox1.Items.Add(Value1 + " + " + Value2.ToString() + "\n");
-                        }
-
-                    }
-
-                    SyncListUpdater_.Show();
-                        
-                    //TaskDialog.Show("Current Sync List ", s);
-                    //MessageBox.Show("Current Sync List ", "");
-
-
-                    //---------------------------------------------------------
-                    if (sheet.Cells[1, 1].Value == null)
-                    {
-                        sheet.Cells[1, 1].Value = Time_.ToString();
-                        sheet.Cells[1, 2].Value = user;
-                        package.Save();
-                        goto finish_;
-                    }
-                    //---------------------------------------------------------
-                    if (sheet.Cells[1, 2].Value.ToString() != "Alex synced")
-                    {
-                        for (int row = 1; row < 9999; row++)
-                        {
-                            var thisValue = sheet.Cells[row, 1].Value;
-
-                            if (thisValue == null)
-                            {
-                                sheet.Cells[row, 1].Value = Time_.ToString();
-                                sheet.Cells[row, 2].Value = user;
-                                package.Save();
-                                goto finder;
-                            }
-                            else
-                            {
-                              
-                               
-                            }
-                        }
-                    }
-                    //---------------------------------------------------------
                     
-                //---------------------------------------------------------
-                }
-            }
-            catch (Exception)
-            {
-                MessageBox.Show("Excel file not found", "");
-                //return;
-                args.Cancel();
-            }
-            finder:
-            for (int i = 0; i < reset; i++)
-            {
-                if (i == 9999999)
-                {
-                    try
-                    {
-                        SyncListUpdater_.listBox1.Items.Clear();
-                        string Sync_Manager = @"T:\Lopez\Sync_Manager.xlsx";
-                        using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
-                        {
-                            ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
-
-                            for (int row = 1; row < 20; row++)
-                            {
-                                if (sheet.Cells[row, 1].Value == null)
-                                {
-                                    break;
-                                }
-                                if (sheet.Cells[row, 1].Value != null)
-                                {
-                                    var Value1 = sheet.Cells[row, 1].Value;
-                                    var Value2 = sheet.Cells[row, 2].Value;
-
-                                    SyncListUpdater_.listBox1.Items.Add(Value1 + " + " + Value2.ToString());
-                                }
-
-                            }
-
-                            if (sheet.Cells[1, 1].Value != null && sheet.Cells[1, 2].Value.ToString() != user)
-                            {
-                                SyncListUpdater_.listBox1.Refresh();
-                                SyncListUpdater_.listBox1.Update();
-                                goto finder;
-                            }
-                            else
-                            {
-                                break;
-                            }
-                        }
-                    }
-                    catch (Exception)
-                    {
-
-                        goto finder;
-
-                    }
-                }
-            }
-            //CountdownTimer timer = new CountdownTimer();
-            //timer.Show();
-            
-            finish_:;
-            SyncListUpdater_.Close();
-            //timer_();
-
-
-         
-        }
-
-       
-        public static void myDocumentSaved(object sender, DocumentSynchronizedWithCentralEventArgs args)
-        {
-
-            string user = args.Document.Application.Username;
-            SyncListUpdater SyncListUpdater_ = new SyncListUpdater();
-            try
-            {
-                string Sync_Manager = @"T:\Lopez\Sync_Manager.xlsx";
-                using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
-                {
-                    ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
-                    if (sheet.Cells[1, 2].Value.ToString() == user)
-                    {
-                        sheet.DeleteRow(1, 1);
-                        package.Save();
-                    }
                 }
             }
             catch (Exception)
@@ -10233,40 +10072,212 @@ namespace BoostYourBIM
                 //MessageBox.Show("Excel file not found", "");
                 //return;
             }
+
+
+
+            return Autodesk.Revit.UI.Result.Succeeded;
         }
-       
-        public static void idleUpdate(object sender, IdlingEventArgs e)
-        {
-            // set an initial value for the last saved time
-            if (lastSaveTime == DateTime.MinValue)
-                lastSaveTime = DateTime.Now;
-            DateTime now = DateTime.Now;
-
-            TimeSpan elapsedTime = now.Subtract(lastSaveTime);
-            double minutes = elapsedTime.Minutes;
-            UIApplication uiApp = sender as UIApplication;
-            uiApp.Application.WriteJournalComment("Idle check. Elapsed time = " + minutes, true);
-            if (minutes < 1)
-                return;
-
-            Document doc = uiApp.ActiveUIDocument.Document;
-            if (!doc.IsWorkshared)
-                return;
-
-            TransactWithCentralOptions transact = new TransactWithCentralOptions();
-            SynchronizeWithCentralOptions synch = new SynchronizeWithCentralOptions();
-            synch.Comment = "Autosaved by the API at " + DateTime.Now;
-            RelinquishOptions relinquishOptions = new RelinquishOptions(true);
-            relinquishOptions.CheckedOutElements = true;
-            synch.SetRelinquishOptions(relinquishOptions);
-
-            uiApp.Application.WriteJournalComment("AutoSave To Central", true);
-            doc.SynchronizeWithCentral(transact, synch);
-            lastSaveTime = DateTime.Now;
-            
-        }
-        
     }
+    //public static class myCommand
+    //{
+    //    static DateTime lastSaveTime;
+    //    public static void myDocumentSaving(object sender, DocumentSynchronizingWithCentralEventArgs args)
+    //    {
+           
+    //        double reset = 10000000;
+    //        SyncListUpdater SyncListUpdater_ = new SyncListUpdater();
+
+    //        string user = args.Document.Application.Username;
+
+    //        string s = "People syncing:" + "\n";
+    //        try
+    //        {
+    //            string Sync_Manager = @"T:\Lopez\Sync_Manager.xlsx";
+    //            using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
+    //            {
+    //                ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
+    //                var Time_ = DateTime.Now;
+    //                //---------------------------------------------------------
+    //                for (int row = 1; row < 20; row++)
+    //                {
+    //                    if (sheet.Cells[row, 1].Value == null)
+    //                    {
+    //                        break;
+    //                    }
+    //                    if (sheet.Cells[row, 1].Value != null)
+    //                    {
+    //                        var Value1 = sheet.Cells[row, 1].Value;
+    //                        var Value2 = sheet.Cells[row, 2].Value;
+    //                        //s += Value1 + " + " + Value2.ToString() + "\n";
+    //                        SyncListUpdater_.listBox1.Items.Add(Value1 + " + " + Value2.ToString() + "\n");
+    //                    }
+
+    //                }
+
+    //                SyncListUpdater_.Show();
+                        
+    //                //TaskDialog.Show("Current Sync List ", s);
+    //                //MessageBox.Show("Current Sync List ", "");
+
+
+    //                //---------------------------------------------------------
+    //                if (sheet.Cells[1, 1].Value == null)
+    //                {
+    //                    sheet.Cells[1, 1].Value = Time_.ToString();
+    //                    sheet.Cells[1, 2].Value = user;
+    //                    package.Save();
+    //                    goto finish_;
+    //                }
+    //                //---------------------------------------------------------
+    //                if (sheet.Cells[1, 2].Value.ToString() != "Alex synced")
+    //                {
+    //                    for (int row = 1; row < 9999; row++)
+    //                    {
+    //                        var thisValue = sheet.Cells[row, 1].Value;
+
+    //                        if (thisValue == null)
+    //                        {
+    //                            sheet.Cells[row, 1].Value = Time_.ToString();
+    //                            sheet.Cells[row, 2].Value = user;
+    //                            package.Save();
+    //                            goto finder;
+    //                        }
+    //                        else
+    //                        {
+                              
+                               
+    //                        }
+    //                    }
+    //                }
+    //                //---------------------------------------------------------
+                    
+    //            //---------------------------------------------------------
+    //            }
+    //        }
+    //        catch (Exception)
+    //        {
+    //            MessageBox.Show("Excel file not found", "");
+    //            //return;
+    //            args.Cancel();
+    //        }
+    //        finder:
+    //        for (int i = 0; i < reset; i++)
+    //        {
+    //            if (i == 9999999)
+    //            {
+    //                try
+    //                {
+    //                    SyncListUpdater_.listBox1.Items.Clear();
+    //                    string Sync_Manager = @"T:\Lopez\Sync_Manager.xlsx";
+    //                    using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
+    //                    {
+    //                        ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
+
+    //                        for (int row = 1; row < 20; row++)
+    //                        {
+    //                            if (sheet.Cells[row, 1].Value == null)
+    //                            {
+    //                                break;
+    //                            }
+    //                            if (sheet.Cells[row, 1].Value != null)
+    //                            {
+    //                                var Value1 = sheet.Cells[row, 1].Value;
+    //                                var Value2 = sheet.Cells[row, 2].Value;
+
+    //                                SyncListUpdater_.listBox1.Items.Add(Value1 + " + " + Value2.ToString());
+    //                            }
+
+    //                        }
+
+    //                        if (sheet.Cells[1, 1].Value != null && sheet.Cells[1, 2].Value.ToString() != user)
+    //                        {
+    //                            SyncListUpdater_.listBox1.Refresh();
+    //                            SyncListUpdater_.listBox1.Update();
+    //                            goto finder;
+    //                        }
+    //                        else
+    //                        {
+    //                            break;
+    //                        }
+    //                    }
+    //                }
+    //                catch (Exception)
+    //                {
+
+    //                    goto finder;
+
+    //                }
+    //            }
+    //        }
+    //        //CountdownTimer timer = new CountdownTimer();
+    //        //timer.Show();
+            
+    //        finish_:;
+    //        SyncListUpdater_.Close();
+    //        //timer_();
+
+
+         
+    //    }
+
+       
+    //    public static void myDocumentSaved(object sender, DocumentSynchronizedWithCentralEventArgs args)
+    //    {
+
+    //        string user = args.Document.Application.Username;
+    //        SyncListUpdater SyncListUpdater_ = new SyncListUpdater();
+    //        try
+    //        {
+    //            string Sync_Manager = @"T:\Lopez\Sync_Manager.xlsx";
+    //            using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
+    //            {
+    //                ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
+    //                if (sheet.Cells[1, 2].Value.ToString() == user)
+    //                {
+    //                    sheet.DeleteRow(1, 1);
+    //                    package.Save();
+    //                }
+    //            }
+    //        }
+    //        catch (Exception)
+    //        {
+    //            //MessageBox.Show("Excel file not found", "");
+    //            //return;
+    //        }
+    //    }
+       
+    //    public static void idleUpdate(object sender, IdlingEventArgs e)
+    //    {
+    //        // set an initial value for the last saved time
+    //        if (lastSaveTime == DateTime.MinValue)
+    //            lastSaveTime = DateTime.Now;
+    //        DateTime now = DateTime.Now;
+
+    //        TimeSpan elapsedTime = now.Subtract(lastSaveTime);
+    //        double minutes = elapsedTime.Minutes;
+    //        UIApplication uiApp = sender as UIApplication;
+    //        uiApp.Application.WriteJournalComment("Idle check. Elapsed time = " + minutes, true);
+    //        if (minutes < 1)
+    //            return;
+
+    //        Document doc = uiApp.ActiveUIDocument.Document;
+    //        if (!doc.IsWorkshared)
+    //            return;
+
+    //        TransactWithCentralOptions transact = new TransactWithCentralOptions();
+    //        SynchronizeWithCentralOptions synch = new SynchronizeWithCentralOptions();
+    //        synch.Comment = "Autosaved by the API at " + DateTime.Now;
+    //        RelinquishOptions relinquishOptions = new RelinquishOptions(true);
+    //        relinquishOptions.CheckedOutElements = true;
+    //        synch.SetRelinquishOptions(relinquishOptions);
+
+    //        uiApp.Application.WriteJournalComment("AutoSave To Central", true);
+    //        doc.SynchronizeWithCentral(transact, synch);
+    //        lastSaveTime = DateTime.Now;
+            
+    //    }
+        
+    //}
 
     class ribbonUI : IExternalApplication
     {
@@ -10286,8 +10297,8 @@ namespace BoostYourBIM
             //return Result.Succeeded;
 
             
-            application.ControlledApplication.DocumentSynchronizingWithCentral += new EventHandler<DocumentSynchronizingWithCentralEventArgs>(myCommand.myDocumentSaving);
-            application.ControlledApplication.DocumentSynchronizedWithCentral += new EventHandler<DocumentSynchronizedWithCentralEventArgs>(myCommand.myDocumentSaved);
+            //application.ControlledApplication.DocumentSynchronizingWithCentral += new EventHandler<DocumentSynchronizingWithCentralEventArgs>(myCommand.myDocumentSaving);
+            //application.ControlledApplication.DocumentSynchronizedWithCentral += new EventHandler<DocumentSynchronizedWithCentralEventArgs>(myCommand.myDocumentSaved);
             
 
 
