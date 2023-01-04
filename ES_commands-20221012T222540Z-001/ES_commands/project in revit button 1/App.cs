@@ -10562,6 +10562,8 @@ namespace BoostYourBIM
                                     item.IsEnabled = false;
                                 }
                             }
+
+
                         }
                     }
                     foreach (adWin.RibbonPanel panel in tab.Panels)
