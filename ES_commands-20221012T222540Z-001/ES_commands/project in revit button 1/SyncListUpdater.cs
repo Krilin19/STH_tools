@@ -16,5 +16,10 @@ namespace ES_commands
         {
             InitializeComponent();
         }
+
+        public void textBox1_TextChanged(object sender, EventArgs e)
+        {
+
+        }
     }
 }

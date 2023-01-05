@@ -9846,34 +9846,15 @@ namespace BoostYourBIM
     }
 
     [Autodesk.Revit.Attributes.Transaction(Autodesk.Revit.Attributes.TransactionMode.Manual)]
-    public class Register_ : IExternalCommand
+    public class Sync_ : IExternalCommand
     {
         static AddInId appId = new AddInId(new Guid("6C22CC72-A167-4819-AAF1-A178F6B44BAB"));
         static public Autodesk.Revit.ApplicationServices.Application m_app;
 
-        public System.Timers.Timer timer;
-        public int h, m, s;
-        public void CountdownTimer_Load(object sender, EventArgs e)
-        {
-            timer = new System.Timers.Timer();
-            timer.Interval = 100;
-            timer.Elapsed += OnTimeEvent;
-        }
-        public void OnTimeEvent(object sender, ElapsedEventArgs e)
-        {
-            s += 1;
-            if (s == 60)
-            {
-                s = 0;
-                m += 1;
-            }
-            if (m == 60)
-            {
-                m = 0;
-                h += 1;
-            }
+        public float abort = 0;
 
-        }
+        float totalSeconds = 0.0f;
+
 
         public Autodesk.Revit.UI.Result Execute(ExternalCommandData commandData, ref string message, ElementSet elementSet)
         {
@@ -9884,10 +9865,10 @@ namespace BoostYourBIM
             //doc.DocumentSaving += new EventHandler<DocumentSavingEventArgs>(myCommand.myDocumentSaving);
 
 
-            if (doc.Title == "RHR_BUILDING_A22")
+            if (doc.Title == "RAC_basic_sample_project"  /*"RHR_BUILDING_A22"*/)
             {
                
-                double reset = 10000000;
+                double reset = 99999999;
                 SyncListUpdater SyncListUpdater_ = new SyncListUpdater();
 
                 string user = doc.Application.Username;
@@ -9918,12 +9899,9 @@ namespace BoostYourBIM
                             }
 
                         }
-
                         SyncListUpdater_.Show();
-
                     //TaskDialog.Show("Current Sync List ", s);
                     //MessageBox.Show("Current Sync List ", "");
-
                     nonvalue:
                         //---------------------------------------------------------
                         try
@@ -9957,14 +9935,9 @@ namespace BoostYourBIM
                                 }
                                 else
                                 {
-
-
                                 }
                             }
                         }
-                        //---------------------------------------------------------
-
-                        //---------------------------------------------------------
                     }
                 }
                 catch (Exception)
@@ -9972,12 +9945,27 @@ namespace BoostYourBIM
                     //MessageBox.Show("Excel file not found", "");
                     //return;
                     goto beggining;
-
                 }
             finder:
                 for (int i = 0; i < reset; i++)
                 {
-                    if (i == 9999999)
+                    totalSeconds = totalSeconds + 0.0001f;
+                    TimeSpan time = TimeSpan.FromSeconds(totalSeconds);
+                    
+                    /*Console.WriteLine(time.ToString("hh':'mm':'ss"))*/
+                    ; // 00:03:48
+
+                    if (totalSeconds == /*228.10803f*/ 2.0f)
+                    {
+                        
+                        //TimeSpan time = TimeSpan.FromSeconds(totalSeconds);
+                        //Console.WriteLine(time.ToString("hh':'mm':'ss")); // 00:03:48
+
+                        MessageBox.Show(" !!! ", " Sync aborted ");
+                        return Autodesk.Revit.UI.Result.Cancelled;
+                    }
+                    //Task.Delay(10000)
+                    if (i == 99999998)
                     {
                         try
                         {
@@ -10017,30 +10005,18 @@ namespace BoostYourBIM
                         }
                         catch (Exception)
                         {
-
+                            SyncListUpdater_.textBox1.Text = time.ToString("hh':'mm':'ss") /*time.ToString()*/;
+                            SyncListUpdater_.listBox1.Refresh();
+                            SyncListUpdater_.listBox1.Update();
                             goto finder;
 
                         }
                     }
                 }
 
-            //System.Timers.Timer timer1 = new System.Timers.Timer
-            //{
-            //    Interval = 2000
-            //};
-            //timer1.Enabled = true;
-            //timer1.Tick += new System.EventHandler(OnTimerEvent);
-
-            //CountdownTimer timer = new CountdownTimer();
-            //timer.Show();
-            //OnTimeEvent();
-
-
-
             finish_:;
 
                 SyncListUpdater_.Close();
-                //timer_();
 
                 TransactWithCentralOptions transact = new TransactWithCentralOptions();
                 SynchronizeWithCentralOptions synch = new SynchronizeWithCentralOptions();
@@ -10051,7 +10027,6 @@ namespace BoostYourBIM
 
                 //uiApp.Application.WriteJournalComment("AutoSave To Central", true);
                 doc.SynchronizeWithCentral(transact, synch);
-
 
                 try
                 {
@@ -10342,8 +10317,8 @@ namespace BoostYourBIM
             sb.AddPushButton(b4);
             sb.AddPushButton(b5);
             sb.AddPushButton(b6);
-            PushButton aa_1 = (PushButton)panel_1_a.AddItem(new PushButtonData("Register_", "Register_", dll, "BoostYourBIM.Register_"));
-            aa_1.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "Erase.png"), UriKind.Absolute));
+            PushButton aa_1 = (PushButton)panel_1_a.AddItem(new PushButtonData("Sync Manager", "Sync Manager", dll, "BoostYourBIM.Sync_"));
+            aa_1.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "sync.png"), UriKind.Absolute));
           
             PushButton a_1 = (PushButton)panel_1_a.AddItem(new PushButtonData("Delete All Views", "Delete All Views", dll, "BoostYourBIM.DeleteAllViews"));
             a_1.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "Erase.png"), UriKind.Absolute));

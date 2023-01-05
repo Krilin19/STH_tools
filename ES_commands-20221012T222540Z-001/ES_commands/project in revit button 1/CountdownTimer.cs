@@ -58,6 +58,11 @@ namespace ES_commands
             timer.Start();
         }
 
+        private void textBox1_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
         private void button2_Click(object sender, EventArgs e)
         {
             timer.Stop();

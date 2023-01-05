@@ -52,6 +52,7 @@
             this.textBox1.TabIndex = 1;
             this.textBox1.Text = "00:00:00";
             this.textBox1.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.textBox1.TextChanged += new System.EventHandler(this.textBox1_TextChanged);
             // 
             // button2
             // 
