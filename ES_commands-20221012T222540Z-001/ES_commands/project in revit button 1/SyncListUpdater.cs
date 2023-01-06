@@ -19,6 +19,17 @@ namespace ES_commands
 
         public void textBox1_TextChanged(object sender, EventArgs e)
         {
+            
+        }
+
+        private void SyncListUpdater_Load(object sender, EventArgs e)
+        {
+            timer1.Start();
+           
+        }
+
+        private void label1_Click(object sender, EventArgs e)
+        {
 
         }
     }

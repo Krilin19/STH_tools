@@ -28,8 +28,11 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.listBox1 = new System.Windows.Forms.ListBox();
             this.textBox1 = new System.Windows.Forms.TextBox();
+            this.timer1 = new System.Windows.Forms.Timer(this.components);
+            this.label1 = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // listBox1
@@ -49,15 +52,32 @@
             this.textBox1.Text = "00:00:00";
             this.textBox1.TextChanged += new System.EventHandler(this.textBox1_TextChanged);
             // 
+            // timer1
+            // 
+            this.timer1.Enabled = true;
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 16.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label1.Location = new System.Drawing.Point(36, 389);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(473, 52);
+            this.label1.TabIndex = 3;
+            this.label1.Text = "You pressed \"delete all Views/Sheets tool\" \r\nDo you want to continue?";
+            this.label1.Click += new System.EventHandler(this.label1_Click);
+            // 
             // SyncListUpdater
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Controls.Add(this.label1);
             this.Controls.Add(this.textBox1);
             this.Controls.Add(this.listBox1);
             this.Name = "SyncListUpdater";
             this.Text = "SyncListUpdater";
+            this.Load += new System.EventHandler(this.SyncListUpdater_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -67,5 +87,7 @@
 
         public System.Windows.Forms.ListBox listBox1;
         public System.Windows.Forms.TextBox textBox1;
+        public System.Windows.Forms.Timer timer1;
+        public System.Windows.Forms.Label label1;
     }
 }
