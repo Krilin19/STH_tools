@@ -9871,6 +9871,7 @@ namespace BoostYourBIM
 
                 var lastSaveTime = DateTime.Now ;
                 var CheckTime = DateTime.Now;
+                bool timerToCheck = true;
 
             beggining:
                 string Sync_Manager = @"T:\Lopez\Sync_Manager.xlsx";
@@ -9911,6 +9912,7 @@ namespace BoostYourBIM
                         }
                         
                         SyncListUpdater_.Show();
+
                     //TaskDialog.Show("Current Sync List ", s);
                     //MessageBox.Show("Current Sync List ", "");
                     nonvalue:
@@ -9967,6 +9969,7 @@ namespace BoostYourBIM
                             }
                         }
                     }
+                    
                 }
                 catch (Exception)
                 {
@@ -9974,26 +9977,95 @@ namespace BoostYourBIM
                     //return;
                     goto beggining;
                 }
+
+                try
+                {
+                    SyncListUpdater_.listBox1.Items.Clear();
+                    using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
+                    {
+                        ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
+
+                        for (int row = 1; row < 20; row++)
+                        {
+                            if (sheet.Cells[row, 1].Value == null)
+                            {
+                                break;
+                            }
+                            if (sheet.Cells[row, 1].Value != null)
+                            {
+                                var Value1 = sheet.Cells[row, 1].Value;
+                                var Value2 = sheet.Cells[row, 2].Value;
+
+                                if (lastSaveTime == DateTime.MinValue)
+                                {
+                                    lastSaveTime = DateTime.Now;
+                                }
+                                DateTime now = DateTime.Now;
+                                TimeSpan elapsedTime = now.Subtract(lastSaveTime);
+                                double minutes = elapsedTime.Minutes;
+                                if (minutes > 2)
+                                {
+                                    SyncListUpdater_.Close();
+                                    MessageBox.Show("3 minutes have passed", "Warning");
+                                    return Autodesk.Revit.UI.Result.Cancelled;
+                                }
+
+                                SyncListUpdater_.listBox1.Items.Add(Value1 + " + " + Value2.ToString());
+                                SyncListUpdater_.textBox1.Text = lastSaveTime.ToString() /*DateTime.Now.ToShortTimeString()*/;
+                                SyncListUpdater_.label1.Text = elapsedTime.ToString();
+                                SyncListUpdater_.textBox1.Refresh();
+                                SyncListUpdater_.textBox1.Update();
+                                SyncListUpdater_.label1.Refresh();
+                                SyncListUpdater_.label1.Update();
+
+                            }
+
+                        }
+
+                        if (sheet.Cells[1, 1].Value != null && sheet.Cells[1, 2].Value.ToString() != user)
+                        {
+                            package.Save();
+                            package.Dispose();
+                            SyncListUpdater_.listBox1.Refresh();
+                            SyncListUpdater_.listBox1.Update();
+                            goto finder;
+                        }
+                        else
+                        {
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    //goto finder;
+                }
                 
             finder:
 
-                //if (CheckTime == DateTime.MinValue)
-                //{
-                //    CheckTime = DateTime.Now;
-                //}
-                //DateTime now = DateTime.Now;
-
-                //TimeSpan elapsedTimeToCheck = now.Subtract(CheckTime);
-                //double minutestoCheck = elapsedTimeToCheck.TotalSeconds;
-                //if (minutestoCheck > 0.5)
-                //{
-                    
-                //}
-
-                for (int i = 0; i < reset; i++)
+                SyncListUpdater_.listBox1.Refresh();
+                SyncListUpdater_.listBox1.Update();
+                while (timerToCheck)
                 {
-                    if (i == 99999998)
+
+                    if (CheckTime == DateTime.MinValue)
                     {
+                        CheckTime = DateTime.Now;
+                    }
+                    DateTime nowTocheck = DateTime.Now;
+
+                    TimeSpan elapsedTimeToCheck = nowTocheck.Subtract(CheckTime);
+                    double minutestoCheck = elapsedTimeToCheck.TotalSeconds;
+
+                    SyncListUpdater_.textBox1.Text = minutestoCheck.ToString() /*DateTime.Now.ToShortTimeString()*/;
+                    SyncListUpdater_.label1.Text = elapsedTimeToCheck.ToString();
+                    SyncListUpdater_.textBox1.Refresh();
+                    SyncListUpdater_.textBox1.Update();
+                    SyncListUpdater_.label1.Refresh();
+                    SyncListUpdater_.label1.Update();
+
+                    if (minutestoCheck > 30.0)
+                    {
+                        CheckTime = DateTime.Now;
                         try
                         {
                             SyncListUpdater_.listBox1.Items.Clear();
@@ -10012,13 +10084,11 @@ namespace BoostYourBIM
                                         var Value1 = sheet.Cells[row, 1].Value;
                                         var Value2 = sheet.Cells[row, 2].Value;
 
-                                        
                                         if (lastSaveTime == DateTime.MinValue)
                                         {
                                             lastSaveTime = DateTime.Now;
-                                        }     
+                                        }
                                         DateTime now = DateTime.Now;
-
                                         TimeSpan elapsedTime = now.Subtract(lastSaveTime);
                                         double minutes = elapsedTime.Minutes;
                                         if (minutes > 2)
@@ -10027,12 +10097,9 @@ namespace BoostYourBIM
                                             MessageBox.Show("3 minutes have passed", "Warning");
                                             return Autodesk.Revit.UI.Result.Cancelled;
                                         }
-                                           
-
-
 
                                         SyncListUpdater_.listBox1.Items.Add(Value1 + " + " + Value2.ToString());
-                                        SyncListUpdater_.textBox1.Text = DateTime.Now.ToShortTimeString();
+                                        SyncListUpdater_.textBox1.Text = minutestoCheck.ToString() /*DateTime.Now.ToShortTimeString()*/;
                                         SyncListUpdater_.label1.Text = elapsedTime.ToString();
                                         SyncListUpdater_.textBox1.Refresh();
                                         SyncListUpdater_.textBox1.Update();
@@ -10066,6 +10133,16 @@ namespace BoostYourBIM
                         }
                     }
                 }
+
+                //for (int i = 0; i < reset; i++)
+                //{
+
+                    
+                //    if (i == 99999998)
+                //    {
+                        
+                //    }
+                //}
             finish_:;
                 SyncListUpdater_.Close();
 
