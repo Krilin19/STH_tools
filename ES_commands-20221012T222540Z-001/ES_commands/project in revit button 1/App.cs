@@ -9853,10 +9853,6 @@ namespace BoostYourBIM
 
         public float abort = 0;
 
-        
-        
-
-
         public Autodesk.Revit.UI.Result Execute(ExternalCommandData commandData, ref string message, ElementSet elementSet)
         {
             UIDocument uidoc = commandData.Application.ActiveUIDocument;
@@ -9864,7 +9860,6 @@ namespace BoostYourBIM
             
             if (doc.Title == "RAC_basic_sample_project"  /*"RHR_BUILDING_A22"*/)
             {
-                double reset = 99999999;
                 SyncListUpdater SyncListUpdater_ = new SyncListUpdater();
 
                 string user = doc.Application.Username;
@@ -9894,24 +9889,43 @@ namespace BoostYourBIM
                     {
                         ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
                         var Time_ = DateTime.Now;
-                        //---------------------------------------------------------
+
+                        if (sheet.Cells[1, 2].Value != null )
+                        {
+                            if (sheet.Cells[1, 2].Value.ToString() == user)
+                            {
+                                goto finish_;
+                            }
+                            
+                        }
                         for (int row = 1; row < 20; row++)
                         {
-                            if (sheet.Cells[row, 1].Value == null)
+                            if (sheet.Cells[row, 1].Value == null )
                             {
                                 break;
                             }
+                            
                             if (sheet.Cells[row, 1].Value != null)
                             {
                                 var Value1 = sheet.Cells[row, 1].Value;
                                 var Value2 = sheet.Cells[row, 2].Value;
                                 //s += Value1 + " + " + Value2.ToString() + "\n";
                                 SyncListUpdater_.listBox1.Items.Add(Value1 + " + " + Value2.ToString() + "\n");
+                                if ((sheet.Cells[row, 1].Value == null))
+                                {
+                                    sheet.Cells[1, 1].Value = Time_.ToString();
+                                    sheet.Cells[1, 2].Value = user;
+                                }
                             }
 
                         }
                         
+                        SyncListUpdater_.listBox1.Refresh();
+                        SyncListUpdater_.listBox1.Update();
                         SyncListUpdater_.Show();
+                        SyncListUpdater_.label2.Text = lastSaveTime.ToString();
+                        SyncListUpdater_.label2.Refresh();
+                        SyncListUpdater_.label2.Update();
 
                     //TaskDialog.Show("Current Sync List ", s);
                     //MessageBox.Show("Current Sync List ", "");
@@ -10011,10 +10025,9 @@ namespace BoostYourBIM
                                 }
 
                                 SyncListUpdater_.listBox1.Items.Add(Value1 + " + " + Value2.ToString());
-                                SyncListUpdater_.textBox1.Text = lastSaveTime.ToString() /*DateTime.Now.ToShortTimeString()*/;
+                               
                                 SyncListUpdater_.label1.Text = elapsedTime.ToString();
-                                SyncListUpdater_.textBox1.Refresh();
-                                SyncListUpdater_.textBox1.Update();
+                               
                                 SyncListUpdater_.label1.Refresh();
                                 SyncListUpdater_.label1.Update();
 
@@ -10056,10 +10069,9 @@ namespace BoostYourBIM
                     TimeSpan elapsedTimeToCheck = nowTocheck.Subtract(CheckTime);
                     double minutestoCheck = elapsedTimeToCheck.TotalSeconds;
 
-                    SyncListUpdater_.textBox1.Text = minutestoCheck.ToString() /*DateTime.Now.ToShortTimeString()*/;
+                    
                     SyncListUpdater_.label1.Text = elapsedTimeToCheck.ToString();
-                    SyncListUpdater_.textBox1.Refresh();
-                    SyncListUpdater_.textBox1.Update();
+                
                     SyncListUpdater_.label1.Refresh();
                     SyncListUpdater_.label1.Update();
 
@@ -10068,10 +10080,11 @@ namespace BoostYourBIM
                         CheckTime = DateTime.Now;
                         try
                         {
-                            SyncListUpdater_.listBox1.Items.Clear();
                             using (ExcelPackage package = new ExcelPackage(new FileInfo(Sync_Manager)))
                             {
                                 ExcelWorksheet sheet = package.Workbook.Worksheets.ElementAt(0);
+
+                                SyncListUpdater_.listBox1.Items.Clear();
 
                                 for (int row = 1; row < 20; row++)
                                 {
@@ -10099,10 +10112,10 @@ namespace BoostYourBIM
                                         }
 
                                         SyncListUpdater_.listBox1.Items.Add(Value1 + " + " + Value2.ToString());
-                                        SyncListUpdater_.textBox1.Text = minutestoCheck.ToString() /*DateTime.Now.ToShortTimeString()*/;
+                                        //SyncListUpdater_.textBox1.Text = minutestoCheck.ToString() /*DateTime.Now.ToShortTimeString()*/;
                                         SyncListUpdater_.label1.Text = elapsedTime.ToString();
-                                        SyncListUpdater_.textBox1.Refresh();
-                                        SyncListUpdater_.textBox1.Update();
+                                        //SyncListUpdater_.textBox1.Refresh();
+                                        //SyncListUpdater_.textBox1.Update();
                                         SyncListUpdater_.label1.Refresh();
                                         SyncListUpdater_.label1.Update();
 
