@@ -39,6 +39,8 @@ using System.Threading.Tasks;
 using Rhino.UI;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using System.Timers;
+using System.Security.Cryptography;
+using System.Windows.Shapes;
 
 namespace BoostYourBIM
 {
@@ -3409,19 +3411,11 @@ namespace BoostYourBIM
 
             RhinoCon.RhinoApplication m_RhinoCOM = new RhinoCon.RhinoApplication(filename2/*"Rhino5x64.Application"*/, true);
 
-            
-
             //for (int j = 0; j <= 20; j++)
-
             //{
-
             //    m_modelfile.Objects.AddLine(new Rhino.Geometry.Line(j, 0, 5 - j, 5 + j, 0, j));
-
             //}
             //m_modelfile.Objects.AddPoint(p1);
-
-
-
 
             ICollection<Reference> my_faces = uidoc.Selection.PickObjects(Autodesk.Revit.UI.Selection.ObjectType.Face, "Select ceilings to be reproduced in rhino geometry");
 
@@ -8552,8 +8546,8 @@ namespace BoostYourBIM
                 filename = openDialog.FileName;
             }
 
-            string tempPath = Path.GetTempPath();
-            string filename2 = Path.Combine(tempPath, filename);
+            string tempPath = System.IO.Path.GetTempPath();
+            string filename2 = System.IO.Path.Combine(tempPath, filename);
 
             if (File.Exists(filename2))
             {
@@ -9629,8 +9623,6 @@ namespace BoostYourBIM
     {
         public static ModelLine Makeline(Autodesk.Revit.DB.Document doc, XYZ pta, XYZ ptb)
         {
-
-
             ModelLine modelLine = null;
             double distance = pta.DistanceTo(ptb);
             if (distance < 0.01)
@@ -9676,124 +9668,259 @@ namespace BoostYourBIM
             }
             return modelLine;
         }
+        public XYZ InvCoord(XYZ MyCoord)
+        {
+            XYZ invcoord = new XYZ((Convert.ToDouble(MyCoord.X * -1)),
+                (Convert.ToDouble(MyCoord.Y * -1)),
+                (Convert.ToDouble(MyCoord.Z * -1)));
+            return invcoord;
+        }
 
         static AddInId appId = new AddInId(new Guid("5F88CC78-A137-5609-AAF8-A478F3B24BAB"));
         public Autodesk.Revit.UI.Result Execute(ExternalCommandData commandData, ref string message, ElementSet elementSet)
         {
-            UIApplication uiapp = commandData.Application;
-            UIDocument uidoc = uiapp.ActiveUIDocument;
+            UIDocument uidoc = commandData.Application.ActiveUIDocument;
             Autodesk.Revit.DB.Document doc = uidoc.Document;
-
-            ViewFamilyType vftele = new FilteredElementCollector(doc).OfClass(typeof(ViewFamilyType)).Cast<ViewFamilyType>().FirstOrDefault<ViewFamilyType>(x => ViewFamily.Elevation == x.ViewFamily);
-
-            ICollection<ElementId> ids = uidoc.Selection.GetElementIds();
-
-            List<Wall> Wall_Sel = new List<Wall>();
-            foreach (ElementId id in ids)
-            {
-                Element e = doc.GetElement(id);
-
-                Wall_Sel.Add(e as Wall);
-            }
 
             List<Element> ele = new List<Element>();
             List<Element> ele2 = new List<Element>();
             IList<Reference> refList = new List<Reference>();
 
             TaskDialog.Show("!", "Select a reference Grid to find orthogonal walls");
-            Autodesk.Revit.DB.Grid levelBelow = doc.GetElement(uidoc.Selection.PickObject(ObjectType.Element, "Select Grid")) as Autodesk.Revit.DB.Grid;
 
-            Autodesk.Revit.DB.Curve dircurve = levelBelow.Curve;
-            Autodesk.Revit.DB.Line Grid_line = dircurve as Autodesk.Revit.DB.Line;
-            //XYZ dir = Grid_line.Direction;
+            Autodesk.Revit.DB.Grid Grid_ = doc.GetElement(uidoc.Selection.PickObject(ObjectType.Element, "Select Grid")) as Autodesk.Revit.DB.Grid;
+            
+            Autodesk.Revit.DB.Wall wall_ = doc.GetElement(uidoc.Selection.PickObject(ObjectType.Element, "Select Grid")) as Autodesk.Revit.DB.Wall;
+
+            LocationCurve lc = wall_.Location as LocationCurve;
 
 
-            XYZ grid_dir = Grid_line.Direction;
-            XYZ up = XYZ.BasisZ;
-            XYZ right = up.CrossProduct(grid_dir);
-            List<Element> To_Be_Rotated = new List<Element>();
+            XYZ direction = Grid_.Curve.GetEndPoint(0).Subtract(Grid_.Curve.GetEndPoint(1)).Normalize();
 
-            foreach (var wall in Wall_Sel)
+
+            Autodesk.Revit.DB.Line line = lc.Curve as Autodesk.Revit.DB.Line;
+
+            if (null == line)
             {
-                LocationCurve lc = wall.Location as LocationCurve;
-                Autodesk.Revit.DB.Transform curveTransform = lc.Curve.ComputeDerivatives(0.5, true);
+                message = "Unable to retrieve wall location line.";
 
-                
-
-                foreach (Wall id in Wall_Sel)
-                {
-
-                    try
-                    {
-                        XYZ origin2 = curveTransform.Origin;
-                        XYZ viewdir2 = curveTransform.BasisX.Normalize();
-                        XYZ viewdir2_back = curveTransform.BasisX.Normalize() * -1;
-
-                        XYZ up2 = XYZ.BasisZ;
-                        XYZ right2 = up.CrossProduct(viewdir2);
-                        XYZ left2 = up.CrossProduct(viewdir2 * -1);
-
-                        double y_onverted = Math.Round(-1 * viewdir2.X);
-
-                        if (grid_dir.IsAlmostEqualTo(right2/*, 0.3333333333*/) || grid_dir.IsAlmostEqualTo(left2) || grid_dir.IsAlmostEqualTo(viewdir2) || grid_dir.IsAlmostEqualTo(viewdir2_back))
-                        {
-                            ele.Add(wall);
-                        }
-                        else
-                        {
-                            To_Be_Rotated.Add(wall);
-                        }
-                    }
-                    catch (Exception)
-                    {
-                        return Autodesk.Revit.UI.Result.Cancelled;
-                    }
-                }
-
-                
-
+                return Result.Failed;
             }
+
+
+            XYZ poscross2 = XYZ.BasisZ.CrossProduct(direction);
+
+            XYZ pntCenter = line.Evaluate(0.5, true);
+            XYZ normal = line.Direction.Normalize();
+            XYZ dir = new XYZ(0, 0, 1);
+            XYZ cross = normal.CrossProduct(dir * -1);
+            XYZ pntEnd = pntCenter + cross.Multiply(2);
+
+          
+
+            XYZ poscross = normal.CrossProduct(dir);
+            XYZ pospntEnd = pntCenter + poscross.Multiply(2);
+
+
+            XYZ vect1 = direction * (-1100 / 304.8);
+            vect1 = vect1.Negate();
+            XYZ vect2 = vect1 + line.Evaluate(0.5, true);
+            Autodesk.Revit.DB.Line line3 = Autodesk.Revit.DB.Line.CreateBound(line.Evaluate(0.5, true), vect2);
+
+            Autodesk.Revit.DB.Line line2 = Autodesk.Revit.DB.Line.CreateBound(pntCenter, pospntEnd);
+
+
+          
+            double GridAngleZ = XYZ.BasisX.AngleTo(poscross2);
+            double GridAngleZDegrees = GridAngleZ * 180 / Math.PI;
+            TaskDialog.Show("!", GridAngleZDegrees.ToString() + poscross2);
+
+         
+
+            double angleX = XYZ.BasisX.AngleTo(line.Direction);
+            double angleDegreesX = angleX * 180 / Math.PI;
+            //TaskDialog.Show("!", ". Anlge to X = " + angleDegreesX.ToString() + line.Direction);
+
+
+            double ABAngle = line.Direction.AngleTo(direction/*poscross2*/);
+           
+            double ABAngleZDegrees = ABAngle * 180 / Math.PI;
+            TaskDialog.Show("!", ABAngleZDegrees.ToString() + direction);
+
 
             using (Transaction tx = new Transaction(doc))
             {
                 tx.Start("Create Wall Section View");
 
-                foreach (var wall2 in To_Be_Rotated)
+
+                Autodesk.Revit.DB.Line axis = Autodesk.Revit.DB.Line.CreateUnbound(line.Evaluate(0.5, true), XYZ.BasisZ);
+                if (direction.X > 0 && direction.Y > 0)
                 {
-                    LocationCurve lc2 = wall2.Location as LocationCurve;
+                    ABAngle = ABAngle *-1;
 
-                    Autodesk.Revit.DB.Line rot_line2 = lc2.Curve as Autodesk.Revit.DB.Line;
-
-                    double angle4 = grid_dir.AngleTo(rot_line2.Direction);
-                    double angleDegrees4 = angle4 * 180 / Math.PI;
-                    if (grid_dir.X < rot_line2.GetEndPoint(1).X)
-                    {
-                        angle4 = 2 * Math.PI - angle4;
-                    }
-                    else
-                    {
-                        angle4 = angle4 * -1;
-                    }
-                    double angleDegreesCorrected4 = angle4 * 180 / Math.PI;
-
-                    Autodesk.Revit.DB.Line axis = Autodesk.Revit.DB.Line.CreateUnbound(lc2.Curve.Evaluate(0.5, true), XYZ.BasisZ);
-
-                    //if (angleDegreesCorrected4 > 160 && angleDegreesCorrected4 < 200)
-                    //{
-                    //    angle4 = angle4 / 2;
-
-                    //    wall2.Location.Rotate(axis, angleDegreesCorrected4);
-                    //}
-                    wall2.Location.Rotate(axis, angle4);
-                    //Makeline(doc, axis.Evaluate(0, false), XYZ.BasisZ);
-
-
+                    wall_.Location.Rotate(axis, (ABAngle * -1));
                 }
-                //ModelCurve mline_dir_right2 = Makeline(doc, line.Evaluate(0.5, true), pntEnd);
-                //elevation1.CropBox = e.get_BoundingBox(null);
+                if (direction.X < 0 && direction.Y > 0)
+                {
+                    if (angleX > GridAngleZ)
+                    {
+                        wall_.Location.Rotate(axis, angleX - GridAngleZ);
+                    }
+                    if (angleX < GridAngleZ)
+                    {
+                        wall_.Location.Rotate(axis, (GridAngleZ - angleX) * -1);
+                    }
+                }
+                if (direction.X > 0 && direction.Y < 0)
+                {
+                    wall_.Location.Rotate(axis, ABAngle );
+                }
+                if (direction.X < 0 && direction.Y < 0)
+                {
+                    wall_.Location.Rotate(axis, ABAngle);
+                }
+
+
+
+
+
+
+
+                Makeline(doc, line.Evaluate(0.5, true), vect2);
+               
 
                 tx.Commit();
             }
+
+
+
+            //if (pntCenter.X < line2.GetEndPoint(1).X)
+            //{
+            //    angle4 = 2 * Math.PI - angle4;
+            //}
+            //double angleDegreesCorrected4 = angle4 * 180 / Math.PI;
+
+            //Autodesk.Revit.DB.Line axis = Autodesk.Revit.DB.Line.CreateUnbound(pntEnd, XYZ.BasisZ);
+
+
+
+            //foreach (Element wall in new FilteredElementCollector(doc).OfClass(typeof(Wall)))
+            //{
+            //    LocationCurve lc = wall.Location as LocationCurve;
+            //    Autodesk.Revit.DB.Transform curveTransform = lc.Curve.ComputeDerivatives(0.5, true);
+
+            //    try
+            //    {
+            //        XYZ origin2 = curveTransform.Origin;
+            //        XYZ viewdir2 = curveTransform.BasisX.Normalize();
+            //        XYZ viewdir2_back = curveTransform.BasisX.Normalize() * -1;
+
+            //        XYZ up2 = XYZ.BasisZ;
+            //        XYZ right2 = up.CrossProduct(viewdir2);
+            //        XYZ left2 = up.CrossProduct(viewdir2 * -1);
+
+            //        double y_onverted = Math.Round(-1 * viewdir2.X);
+
+            //        if (viewdir.IsAlmostEqualTo(right2/*, 0.3333333333*/))
+            //        {
+            //            ele.Add(wall);
+            //        }
+            //        if (viewdir.IsAlmostEqualTo(left2))
+            //        {
+            //            ele.Add(wall);
+            //        }
+            //        if (viewdir.IsAlmostEqualTo(viewdir2))
+            //        {
+            //            ele.Add(wall);
+            //        }
+            //        if (viewdir.IsAlmostEqualTo(viewdir2_back))
+            //        {
+            //            ele.Add(wall);
+            //        }
+
+
+            //    }
+            //    catch (Exception)
+            //    {
+            //        return Autodesk.Revit.UI.Result.Cancelled;
+            //    }
+            //}
+
+            //UIApplication uiapp = commandData.Application;
+            //UIDocument uidoc = uiapp.ActiveUIDocument;
+            //Autodesk.Revit.DB.Document doc = uidoc.Document;
+
+            //ViewFamilyType vftele = new FilteredElementCollector(doc).OfClass(typeof(ViewFamilyType)).Cast<ViewFamilyType>().FirstOrDefault<ViewFamilyType>(x => ViewFamily.Elevation == x.ViewFamily);
+
+            //ICollection<ElementId> ids = uidoc.Selection.GetElementIds();
+
+            //List<Wall> Wall_Sel = new List<Wall>();
+            //foreach (ElementId id in ids)
+            //{
+            //    Element e = doc.GetElement(id);
+
+            //    Wall_Sel.Add(e as Wall);
+            //}
+
+            //List<Element> ele = new List<Element>();
+            //List<Element> ele2 = new List<Element>();
+            //IList<Reference> refList = new List<Reference>();
+
+            //TaskDialog.Show("!", "Select a reference Grid to find orthogonal walls");
+            //Autodesk.Revit.DB.Grid levelBelow = doc.GetElement(uidoc.Selection.PickObject(ObjectType.Element, "Select Grid")) as Autodesk.Revit.DB.Grid;
+
+            //Autodesk.Revit.DB.Curve dircurve = levelBelow.Curve;
+            //Autodesk.Revit.DB.Line Grid_line = dircurve as Autodesk.Revit.DB.Line;
+            ////XYZ dir = Grid_line.Direction;
+
+
+            //XYZ grid_dir = Grid_line.Direction;
+            //XYZ up = XYZ.BasisZ;
+            //XYZ right = up.CrossProduct(grid_dir);
+            //List<Element> To_Be_Rotated = new List<Element>();
+
+            //foreach (var wall in Wall_Sel)
+            //{
+            //    LocationCurve lc = wall.Location as LocationCurve;
+            //    Autodesk.Revit.DB.Transform curveTransform = lc.Curve.ComputeDerivatives(0.5, true);
+
+
+
+            //    foreach (Wall id in Wall_Sel)
+            //    {
+
+            //        try
+            //        {
+            //            XYZ origin2 = curveTransform.Origin;
+            //            XYZ viewdir2 = curveTransform.BasisX.Normalize();
+            //            XYZ viewdir2_back = curveTransform.BasisX.Normalize() * -1;
+
+            //            XYZ up2 = XYZ.BasisZ;
+            //            XYZ right2 = up.CrossProduct(viewdir2);
+            //            XYZ left2 = up.CrossProduct(viewdir2 * -1);
+
+            //            double y_onverted = Math.Round(-1 * viewdir2.X);
+
+            //            if (grid_dir.IsAlmostEqualTo(right2/*, 0.3333333333*/) || grid_dir.IsAlmostEqualTo(left2) || grid_dir.IsAlmostEqualTo(viewdir2) || grid_dir.IsAlmostEqualTo(viewdir2_back))
+            //            {
+            //                ele.Add(wall);
+            //            }
+            //            else
+            //            {
+            //                To_Be_Rotated.Add(wall);
+            //            }
+            //        }
+            //        catch (Exception)
+            //        {
+            //            return Autodesk.Revit.UI.Result.Cancelled;
+            //        }
+            //    }
+
+
+
+            //}
+
+
             return Result.Succeeded;
         }
     }
@@ -9846,13 +9973,88 @@ namespace BoostYourBIM
     }
 
     [Autodesk.Revit.Attributes.Transaction(Autodesk.Revit.Attributes.TransactionMode.Manual)]
+    public class IntersecRoom : IExternalCommand
+    {
+        static AddInId appId = new AddInId(new Guid("6C22CC72-A167-4819-AAF1-A178F6B44BAB"));
+        public Autodesk.Revit.UI.Result Execute(ExternalCommandData commandData, ref string message, ElementSet elementSet)
+        {
+            UIDocument uidoc = commandData.Application.ActiveUIDocument;
+            Document doc = uidoc.Document;
+           
+
+            IList<Reference> refList = new List<Reference>();
+
+            TaskDialog.Show("Grids - family instances - Viewports", "Select elements in order to be renumbered and then press ESCAPE to finish (the sequence will start with the number of the first selected element)");
+
+            try
+            {
+                while (true)
+                    refList.Add(uidoc.Selection.PickObject(ObjectType.Face, "Select elements in order to be renumbered. ESC when finished."));
+            }
+            catch
+            { 
+            }
+
+
+            List<Face> faces_picked = new List<Face>();
+            List<string> name_of_roof = new List<string>();
+
+            foreach (var item_myRefWall in refList)
+            {
+
+                Element e_ = doc.GetElement(item_myRefWall);
+                GeometryObject geoobj = e_.GetGeometryObjectFromReference(item_myRefWall);
+           
+                Face face = geoobj as Face;
+                PlanarFace planarFace = face as PlanarFace;
+                XYZ normal = planarFace.ComputeNormal(new UV(planarFace.Origin.X, planarFace.Origin.Y));
+
+
+                name_of_roof.Add("roof");
+                faces_picked.Add(face);
+
+
+
+                if (true)
+	            {
+
+	            }
+            
+			    View3D view3d = doc.ActiveView as View3D;
+			    if (view3d == null)
+			    {
+				    TaskDialog.Show("Error","Active view must be a 3d view");
+				   
+			    }
+			    ReferenceIntersector ri = new ReferenceIntersector(view3d);
+			    IList<ReferenceWithContext> refWithContextList = ri.Find(normal,XYZ.BasisZ.Negate());
+			    string data = "";
+			    foreach (ReferenceWithContext rwc in refWithContextList)
+			    {
+				    Reference r = rwc.GetReference();
+				    double d = rwc.Proximity;
+				    Element e = doc.GetElement(r);
+				
+				    GeometryObject o = e.GetGeometryObjectFromReference(r);
+				    string oType = o.GetType().ToString();
+				    data += oType + " - " + e.Name + " - " + d + Environment.NewLine;
+			    }
+			    TaskDialog.Show("elements hit",data);
+
+            }
+           
+
+            return Autodesk.Revit.UI.Result.Succeeded;
+        }
+    }
+
+
+    [Autodesk.Revit.Attributes.Transaction(Autodesk.Revit.Attributes.TransactionMode.Manual)]
     public class Sync_ : IExternalCommand
     {
         static AddInId appId = new AddInId(new Guid("6C22CC72-A167-4819-AAF1-A178F6B44BAB"));
         static public Autodesk.Revit.ApplicationServices.Application m_app;
-
         public float abort = 0;
-
         public Autodesk.Revit.UI.Result Execute(ExternalCommandData commandData, ref string message, ElementSet elementSet)
         {
             UIDocument uidoc = commandData.Application.ActiveUIDocument;
@@ -9861,9 +10063,7 @@ namespace BoostYourBIM
             if (doc.Title == "RAC_basic_sample_project"  /*"RHR_BUILDING_A22"*/)
             {
                 SyncListUpdater SyncListUpdater_ = new SyncListUpdater();
-
                 string user = doc.Application.Username;
-
                 var lastSaveTime = DateTime.Now ;
                 var CheckTime = DateTime.Now;
                 bool timerToCheck = true;
@@ -10402,7 +10602,7 @@ namespace BoostYourBIM
         public Autodesk.Revit.UI.Result OnStartup(UIControlledApplication application)
         {
             string appdataFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            string folderPath = Path.Combine(appdataFolder, @"Autodesk\Revit\Addins\2022\ES_commands\img");
+            string folderPath = System.IO.Path.Combine(appdataFolder, @"Autodesk\Revit\Addins\2022\ES_commands\img");
             string dll = Assembly.GetExecutingAssembly().Location;
             string myRibbon_1 = "Alex Tools";
 
@@ -10413,191 +10613,194 @@ namespace BoostYourBIM
             //application.ControlledApplication.DocumentSynchronizedWithCentral += new EventHandler<DocumentSynchronizedWithCentralEventArgs>(myCommand.myDocumentSaved);
             
             application.CreateRibbonTab(myRibbon_1);
-            RibbonPanel panel_1_a = application.CreateRibbonPanel(myRibbon_1, "Views / Sheets Tools");
-            //RibbonPanel panel_2_a = application.CreateRibbonPanel(myRibbon_1, "Working tools");
-            //RibbonPanel panel_3_a = application.CreateRibbonPanel(myRibbon_1, "Analisys");
-            //RibbonPanel panel_4_a = application.CreateRibbonPanel(myRibbon_1, "Legend views");
-            //RibbonPanel panel_5_a = application.CreateRibbonPanel(myRibbon_1, "Version");
+            RibbonPanel panel_1_a = application.CreateRibbonPanel(myRibbon_1, "Prototype tools");
+            RibbonPanel panel_2_a = application.CreateRibbonPanel(myRibbon_1, "Working tools");
+            RibbonPanel panel_3_a = application.CreateRibbonPanel(myRibbon_1, "Analisys");
+            RibbonPanel panel_4_a = application.CreateRibbonPanel(myRibbon_1, "Legend views");
+            RibbonPanel panel_5_a = application.CreateRibbonPanel(myRibbon_1, "Version");
 
 
 
-            //RibbonPanel panel_6_a = application.CreateRibbonPanel(myRibbon_1, "Rhino Tools");
-            //RibbonPanel panel_7_a = application.CreateRibbonPanel(myRibbon_1, "Lines / planes creation");
-            //PushButtonData b1 = new PushButtonData("ButtonNameA", "Create Sheet/s views", dll, "BoostYourBIM.PlaceView_CrateSheet");
-            //b1.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "createsheet_32.png"), UriKind.Absolute));
-            //PushButtonData b2 = new PushButtonData("Create Multiple Sheets", "Create Multiple Empty Sheets", dll, "BoostYourBIM.CreatMultipleSheet");
-            //b2.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "createsheet_32.png"), UriKind.Absolute));
-            //PushButtonData b3 = new PushButtonData("Duplicate one Sheet", "Duplicate one Sheet", dll, "BoostYourBIM.Duplicate_0ne_sheet");
-            //b3.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "storeselect.png"), UriKind.Absolute));
-            //PushButtonData b4 = new PushButtonData("Copy Schedule", "Schedule/legend placement", dll, "BoostYourBIM.copy_schedule");
-            //b4.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "Form.png"), UriKind.Absolute));
-            //PushButtonData b5 = new PushButtonData("Create Views", "Create Views", dll, "BoostYourBIM.Element_Elevations");
-            //b5.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "roomSchedule_32.png"), UriKind.Absolute));
-            //PushButtonData b6 = new PushButtonData("Room Elevations", "Room Elevations", dll, "BoostYourBIM.RoomElevations");
-            //b6.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "roomSchedule_32.png"), UriKind.Absolute));
-            //SplitButtonData sb1 = new SplitButtonData("Sheet creating option", "Options to create Sheets sets");
-            //SplitButton sb = panel_1_a.AddItem(sb1) as SplitButton;
-            //sb.IsSynchronizedWithCurrentItem = false;
-            //sb.ItemText = "hola";
-            //sb.AddPushButton(b1);
-            //sb.AddPushButton(b2);
-            //sb.AddPushButton(b3);
-            //sb.AddPushButton(b4);
-            //sb.AddPushButton(b5);
-            //sb.AddPushButton(b6);
+            RibbonPanel panel_6_a = application.CreateRibbonPanel(myRibbon_1, "Rhino Tools");
+            RibbonPanel panel_7_a = application.CreateRibbonPanel(myRibbon_1, "Lines / planes creation");
+            PushButtonData b1 = new PushButtonData("ButtonNameA", "Create Sheet/s views", dll, "BoostYourBIM.PlaceView_CrateSheet");
+            b1.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "createsheet_32.png"), UriKind.Absolute));
+            PushButtonData b2 = new PushButtonData("Create Multiple Sheets", "Create Multiple Empty Sheets", dll, "BoostYourBIM.CreatMultipleSheet");
+            b2.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "createsheet_32.png"), UriKind.Absolute));
+            PushButtonData b3 = new PushButtonData("Duplicate one Sheet", "Duplicate one Sheet", dll, "BoostYourBIM.Duplicate_0ne_sheet");
+            b3.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "storeselect.png"), UriKind.Absolute));
+            PushButtonData b4 = new PushButtonData("Copy Schedule", "Schedule/legend placement", dll, "BoostYourBIM.copy_schedule");
+            b4.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "Form.png"), UriKind.Absolute));
+            PushButtonData b5 = new PushButtonData("Create Views", "Create Views", dll, "BoostYourBIM.Element_Elevations");
+            b5.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "roomSchedule_32.png"), UriKind.Absolute));
+            PushButtonData b6 = new PushButtonData("Room Elevations", "Room Elevations", dll, "BoostYourBIM.RoomElevations");
+            b6.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "roomSchedule_32.png"), UriKind.Absolute));
+            SplitButtonData sb1 = new SplitButtonData("Sheet creating option", "Options to create Sheets sets");
+            SplitButton sb = panel_1_a.AddItem(sb1) as SplitButton;
+            sb.IsSynchronizedWithCurrentItem = false;
+            sb.ItemText = "hola";
+            sb.AddPushButton(b1);
+            sb.AddPushButton(b2);
+            sb.AddPushButton(b3);
+            sb.AddPushButton(b4);
+            sb.AddPushButton(b5);
+            sb.AddPushButton(b6);
             PushButton aa_1 = (PushButton)panel_1_a.AddItem(new PushButtonData("Sync Manager", "Sync Manager", dll, "BoostYourBIM.Sync_"));
-            aa_1.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "sync.png"), UriKind.Absolute));
-          
-           // PushButton a_1 = (PushButton)panel_1_a.AddItem(new PushButtonData("Delete All Views", "Delete All Views", dll, "BoostYourBIM.DeleteAllViews"));
-           // a_1.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "Erase.png"), UriKind.Absolute));
-           // a_1.ToolTip = "This tool will delete all views and sheets in the project living only one (the view named Home)";
-           // a_1.LongDescription = "...";
+            aa_1.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "sync.png"), UriKind.Absolute));
+
+            PushButton aa_2 = (PushButton)panel_1_a.AddItem(new PushButtonData("Intersec Room", "Intersec Room", dll, "BoostYourBIM.IntersecRoom"));
+            aa_2.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "sync.png"), UriKind.Absolute));
+
+            PushButton a_1 = (PushButton)panel_1_a.AddItem(new PushButtonData("Delete All Views", "Delete All Views", dll, "BoostYourBIM.DeleteAllViews"));
+            a_1.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "Erase.png"), UriKind.Absolute));
+            a_1.ToolTip = "This tool will delete all views and sheets in the project living only one (the view named Home)";
+            a_1.LongDescription = "...";
 
 
-           // PushButton a_2_1 = (PushButton)panel_2_a.AddItem(new PushButtonData("ReNumbering", "ReNumbering", dll, "BoostYourBIM.ReNumbering"));
-           // a_2_1.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "rename.png"), UriKind.Absolute));
-           // a_2_1.ToolTip = "Renumbers a secuence of revit elements (Viewports, Doors/room number, Grids) giving that the parameter does not contain a text character";
-           // a_2_1.LongDescription = "...";
-           // PushButton a_2 = (PushButton)panel_2_a.AddItem(new PushButtonData("Delete Level ", "Delete Level ", dll, "BoostYourBIM.DeleteLevel"));
-           // a_2.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "deletelevel_32.png"), UriKind.Absolute));
-           // a_2.ToolTip = "Reallocated hosted element from one level to another so elements are not lose when level is deleted";
-           // PushButton a_3 = (PushButton)panel_2_a.AddItem(new PushButtonData("Remove paint", "Remove paint", dll, "BoostYourBIM.remove_paint"));
-           // a_3.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "remove_paint.png"), UriKind.Absolute));
-           // a_3.ToolTip = "Removes paint from selected set of walls";
+            PushButton a_2_1 = (PushButton)panel_2_a.AddItem(new PushButtonData("ReNumbering", "ReNumbering", dll, "BoostYourBIM.ReNumbering"));
+            a_2_1.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "rename.png"), UriKind.Absolute));
+            a_2_1.ToolTip = "Renumbers a secuence of revit elements (Viewports, Doors/room number, Grids) giving that the parameter does not contain a text character";
+            a_2_1.LongDescription = "...";
+            PushButton a_2 = (PushButton)panel_2_a.AddItem(new PushButtonData("Delete Level ", "Delete Level ", dll, "BoostYourBIM.DeleteLevel"));
+            a_2.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "deletelevel_32.png"), UriKind.Absolute));
+            a_2.ToolTip = "Reallocated hosted element from one level to another so elements are not lose when level is deleted";
+            PushButton a_3 = (PushButton)panel_2_a.AddItem(new PushButtonData("Remove paint", "Remove paint", dll, "BoostYourBIM.remove_paint"));
+            a_3.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "remove_paint.png"), UriKind.Absolute));
+            a_3.ToolTip = "Removes paint from selected set of walls";
 
-           // PushButton a_3_2 = (PushButton)panel_3_a.AddItem(new PushButtonData("Wall Elevation", "Wall Elevation", dll, "BoostYourBIM.Wall_Elevation"));
-           // a_3_2.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "iconfinder_Angle_131818.png"), UriKind.Absolute));
-           // a_3_2.ToolTip = "...";
+            PushButton a_3_2 = (PushButton)panel_3_a.AddItem(new PushButtonData("Wall Elevation", "Wall Elevation", dll, "BoostYourBIM.Wall_Elevation"));
+            a_3_2.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "iconfinder_Angle_131818.png"), UriKind.Absolute));
+            a_3_2.ToolTip = "...";
 
-           // PushButton a_3_3 = (PushButton)panel_3_a.AddItem(new PushButtonData("Rot_Wal_Angle_To_Grid", "Rot_Wal_Angle_To_Grid", dll, "BoostYourBIM.Rot_Wal_Angle_To_Grid"));
-           // a_3_3.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "iconfinder_Angle_131818.png"), UriKind.Absolute));
-           // a_3_3.ToolTip = "..."; 
-           // PushButton a_3_4 = (PushButton)panel_3_a.AddItem(new PushButtonData("Set_Annotation_Crop", "Set_Annotation_Crop", dll, "BoostYourBIM.Set_Annotation_Crop"));
-           // a_3_4.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "iconfinder_Angle_131818.png"), UriKind.Absolute));
-           // a_3_4.ToolTip = "...";
+            PushButton a_3_3 = (PushButton)panel_3_a.AddItem(new PushButtonData("Rot_Wal_Angle_To_Grid", "Rot_Wal_Angle_To_Grid", dll, "BoostYourBIM.Rot_Wal_Angle_To_Grid"));
+            a_3_3.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "iconfinder_Angle_131818.png"), UriKind.Absolute));
+            a_3_3.ToolTip = "...";
+            PushButton a_3_4 = (PushButton)panel_3_a.AddItem(new PushButtonData("Set_Annotation_Crop", "Set_Annotation_Crop", dll, "BoostYourBIM.Set_Annotation_Crop"));
+            a_3_4.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "iconfinder_Angle_131818.png"), UriKind.Absolute));
+            a_3_4.ToolTip = "...";
 
 
-           // PushButton a_12 = (PushButton)panel_2_a.AddItem(new PushButtonData("Text to Uppercase", "Text to Uppercase", dll, "BoostYourBIM.text_upper"));
-           // a_12.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "upper_.png"), UriKind.Absolute));
-           // a_12.ToolTip = "";
-           // PushButton a_3_1 = (PushButton)panel_3_a.AddItem(new PushButtonData("Wall Angle", "Wall Angle", dll, "BoostYourBIM.Wall_Angle_to"));
-           // a_3_1.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "iconfinder_Angle_131818.png"), UriKind.Absolute));
-           // a_3_1.ToolTip = "...";
-           // PushButton a_8 = (PushButton)panel_2_a.AddItem(new PushButtonData("Detail Line select", "Detail Line select", dll, "BoostYourBIM.select_detailline"));
-           // a_8.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "Selection.png"), UriKind.Absolute));
-           // a_8.ToolTip = "After selecting a Detail line the tool will select all intances of the type in the view or the project";
-           // PushButton a_13 = (PushButton)panel_2_a.AddItem(new PushButtonData("Total Lenght", "Total Lenght", dll, "BoostYourBIM.TotalLenght"));
-           // a_13.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "TotalLenght.png"), UriKind.Absolute));
-           // a_13.ToolTip = "Retrives the total lenght of line base elements ";
-           // PushButton a_21 = (PushButton)panel_2_a.AddItem(new PushButtonData("Transparensy", "Transparency", dll, "BoostYourBIM.isolate"));
-           // a_21.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "solid icon.png"), UriKind.Absolute));
-           // a_21.ToolTip = "";
-           // PushButton a_22 = (PushButton)panel_2_a.AddItem(new PushButtonData("Isolate category", "Isolate category", dll, "BoostYourBIM.isolate_category"));
-           // a_22.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "solid icon.png"), UriKind.Absolute));
-           // a_22.ToolTip = "";
-           // PushButton a_23 = (PushButton)panel_2_a.AddItem(new PushButtonData("Clean view", "Clean view", dll, "BoostYourBIM.Clean_view"));
-           // a_23.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "solid icon.png"), UriKind.Absolute));
-           // a_23.ToolTip = "";
-           // PushButtonData D_1 = new PushButtonData("Line", "Line", dll, "BoostYourBIM.make_line");
-           // D_1.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "line.png"), UriKind.Absolute));
-           // PushButton a_16 = (PushButton)panel_3_a.AddItem(new PushButtonData("Select NB wall", "non bounding wall", dll, "BoostYourBIM.Wall_Bounding_room"));
-           // a_16.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "nonroombounding.png"), UriKind.Absolute));
-           // a_16.ToolTip = "...";
-           // PushButtonData D_2 = new PushButtonData("Plane", "Plane", dll, "BoostYourBIM.line_point_plane");
-           // D_2.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "line.png"), UriKind.Absolute));
-           // PushButtonData D_3 = new PushButtonData("Line distance", "Line from surface", dll, "BoostYourBIM.make_line_from_surface_normal");
-           // D_3.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "line.png"), UriKind.Absolute));
-           // PushButtonData D_5 = new PushButtonData("Loft geometry", "Loft geometry", dll, "BoostYourBIM.loft");
-           // D_5.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "line.png"), UriKind.Absolute));
-           // PushButtonData D_6 = new PushButtonData("Duct from line", "Duct geometry", dll, "BoostYourBIM.make_duck_by_line");
-           // D_6.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "line.png"), UriKind.Absolute));
-           // PushButtonData D_7 = new PushButtonData("Create flex ducts", "Create flex ducts", dll, "BoostYourBIM.Create_flex_ducts_from_line");
-           // D_7.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "line.png"), UriKind.Absolute));
-           // PushButtonData D_8 = new PushButtonData("Create ducts fitting", "Create ducts fitting", dll, "BoostYourBIM.duct_elbo");
-           // D_8.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "line.png"), UriKind.Absolute));
-           // PushButtonData D_9 = new PushButtonData("Closest_point", "Closest_point", dll, "BoostYourBIM.Closest_point_2Lines");
-           // D_9.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "line.png"), UriKind.Absolute));
-           // PushButton D_11 = (PushButton)panel_7_a.AddItem(new PushButtonData("Pipe 3D Lines", "Pipe 3D Lines", dll, "BoostYourBIM.Pipe_lines"));
-           // D_11.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "pipelinedgw.png"), UriKind.Absolute));
-           // D_11.ToolTip = "...";
-           // PushButton D_12 = (PushButton)panel_7_a.AddItem(new PushButtonData("PENO Point", "PENO Point", dll, "BoostYourBIM.Pipe_slab_intersetion"));
-           // D_12.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "PENOPT.png"), UriKind.Absolute));
-           // D_12.ToolTip = "...";
-           // PushButton D_13 = (PushButton)panel_7_a.AddItem(new PushButtonData("Closest grid to Peno", "Closest grid to Peno", dll, "BoostYourBIM.Closestpt_togrids"));
-           // D_13.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "closestgrid.png"), UriKind.Absolute));
-           // D_13.ToolTip = "...";
-           // PushButton D_14 = (PushButton)panel_7_a.AddItem(new PushButtonData("Pipe from lines", "Pipe from lines", dll, "BoostYourBIM.make_pipe_by_line"));
-           // D_14.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "Makepipefromline.png"), UriKind.Absolute));
-           // D_14.ToolTip = "...";
-           // PushButton D_15 = (PushButton)panel_7_a.AddItem(new PushButtonData("Plane by line & point", "Plane by line & point", dll, "BoostYourBIM.line_point_plane"));
-           // D_15.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "Planebylinepoint.png"), UriKind.Absolute));
-           // D_15.ToolTip = "...";
-           // PushButton D_16 = (PushButton)panel_7_a.AddItem(new PushButtonData(" Pipe lines to 12D ", " Pipe lines to 12D ", dll, "BoostYourBIM.Pipe_lines_excel"));
-           // D_16.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "pipeline12d.png"), UriKind.Absolute));
-           // D_16.ToolTip = "...";
-           //PushButton D_17 = (PushButton)panel_7_a.AddItem(new PushButtonData(" Isolate Pipe type ", " Isolate Pipe type ", dll, "BoostYourBIM.Isolate_Pipe"));
-           //D_17.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "selectpipe.png"), UriKind.Absolute));
-           //D_17.ToolTip = "...";
-           // SplitButtonData sb4 = new SplitButtonData("Sheet creating option", "Options to create Sheets sets");
-           // SplitButton sb_4 = panel_7_a.AddItem(sb4) as SplitButton;
-           // sb_4.IsSynchronizedWithCurrentItem = false;
-           // sb_4.ItemText = "hola";
-           // sb_4.IsSynchronizedWithCurrentItem = false;
-           // sb_4.AddPushButton(D_1);
-           // sb_4.AddPushButton(D_2);
-           // sb_4.AddPushButton(D_3);
-           // sb_4.AddPushButton(D_5);
-           // sb_4.AddPushButton(D_6);
-           // sb_4.AddPushButton(D_7);
-           // sb_4.AddPushButton(D_8);
-           // sb_4.AddPushButton(D_9);
-           // PushButton a_18 = (PushButton)panel_3_a.AddItem(new PushButtonData("Floor from topo", "Floor from topo", dll, "BoostYourBIM.revision_on_project"));
-           // a_18.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "topo.png"), UriKind.Absolute));
-           // a_18.ToolTip = "...";
-           // PushButtonData C_11 = new PushButtonData("Family Geometry Search", "Family GeoGeometry Search", dll, "BoostYourBIM.Rhino_access_faces");
-           // C_11.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "rhinoexport_32.png"), UriKind.Absolute));
-           // PushButtonData C_12 = new PushButtonData("Rhino Object to Revit", "Rhino Object to Revit", dll, "BoostYourBIM.Reading_from_rhino");
-           // C_12.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "rhinoexport_32_copy.png"), UriKind.Absolute));
-           // PushButtonData C_13 = new PushButtonData("Group Geometry Exporter", "Group Geometry Exporter", dll, "BoostYourBIM.Rhino_access");
-           // C_13.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "rhinoexport_32.png"), UriKind.Absolute));
-           // PushButtonData C_14 = new PushButtonData("Rhino pnts to Revit topo", "Rhino pnts to Revit topo", dll, "BoostYourBIM.rhino_points_to_revit_topo");
-           // C_14.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "rhinoexport_32_copy.png"), UriKind.Absolute));
-           // PushButtonData C_15 = new PushButtonData("Rhino lns to Revit lines", "Rhino lns to Revit lines", dll, "BoostYourBIM.rhino_lns_to_revit_lns");
-           // C_15.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "rhinoexport_32.png"), UriKind.Absolute));
-           // PushButtonData C_16 = new PushButtonData("Rhino lns to Frame", "Rhino lns to Frame", dll, "BoostYourBIM.rhino_PTS_to_revitPTS");
-           // C_16.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "rhinoexport_32.png"), UriKind.Absolute));
-           // PushButtonData C_17 = new PushButtonData("Create_solid_rooms", "Create_solid_rooms", dll, "BoostYourBIM.Create_solid_rooms");
-           // C_17.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "rhinoexport_32.png"), UriKind.Absolute));
-           // PushButtonData C_18 = new PushButtonData("Import Rhino clash points", "Import Rhino clash points", dll, "BoostYourBIM.rhino_pt_to_revit_clash");
-           // C_18.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "rhinoexport_32.png"), UriKind.Absolute));
-           // PushButtonData C_19 = new PushButtonData("Import Excel clash points", "Import Excel clash points", dll, "BoostYourBIM.excel_to_revit_clash");
-           // C_19.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "rhinoexport_32.png"), UriKind.Absolute));
-           //   SplitButtonData sb3 = new SplitButtonData("Sheet creating option", "Options to create Sheets sets");
-           // SplitButton sb_3 = panel_6_a.AddItem(sb3) as SplitButton;
-           // sb_3.IsSynchronizedWithCurrentItem = false;
-           // sb_3.ItemText = "hola";
-           // sb_3.IsSynchronizedWithCurrentItem = false;
-           // sb_3.AddPushButton(C_11);
-           // sb_3.AddPushButton(C_12);
-           // sb_3.AddPushButton(C_13);
-           // sb_3.AddPushButton(C_14);
-           // sb_3.AddPushButton(C_15);
-           // sb_3.AddPushButton(C_16);
-           // sb_3.AddPushButton(C_17);
-           // sb_3.AddPushButton(C_18);
-           // sb_3.AddPushButton(C_19);
-           // PushButtonData b_8 = new PushButtonData("Door Views", "Door Views", dll, "BoostYourBIM.Door_Section");
-           // b_8.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "doorSchedule.png"), UriKind.Absolute));
-           // b_8.ToolTip = "a section view is created of elements containing an identifier in the parameter field (Schedule Identifier)";
-           // PushButtonData b_9 = new PushButtonData("Room Views", "Room Views", dll, "BoostYourBIM.RoomElevations");
-           // b_9.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "roomSchedule_32.png"), UriKind.Absolute));
-           // b_9.ToolTip = "Section, floor/ceiling plans, Int elevation and Isometric views can be created of one room containing an identifier in the parameter field (Schedule Identifier)";
-           // PushButtonData b_10 = new PushButtonData("Wall Views", "Wall Views", dll, "BoostYourBIM.CreateSchedule");
-           // b_10.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "cutingwall_32.png"), UriKind.Absolute));
-           // b_10.ToolTip = "a section view is created of elements containing an identifier in the parameter field (Schedule Identifier)";
-           // PushButtonData b_11 = new PushButtonData("Window Views", "Window Views", dll, "BoostYourBIM.WindowSection");
-           // b_11.LargeImage = new BitmapImage(new Uri(Path.Combine(folderPath, "windowSchedule_32.png"), UriKind.Absolute));
-           // b_11.ToolTip = "a section view is created of elements containing an identifier in the parameter field (Schedule Identifier)";
+            PushButton a_12 = (PushButton)panel_2_a.AddItem(new PushButtonData("Text to Uppercase", "Text to Uppercase", dll, "BoostYourBIM.text_upper"));
+            a_12.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "upper_.png"), UriKind.Absolute));
+            a_12.ToolTip = "";
+            PushButton a_3_1 = (PushButton)panel_3_a.AddItem(new PushButtonData("Wall Angle", "Wall Angle", dll, "BoostYourBIM.Wall_Angle_to"));
+            a_3_1.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "iconfinder_Angle_131818.png"), UriKind.Absolute));
+            a_3_1.ToolTip = "...";
+            PushButton a_8 = (PushButton)panel_2_a.AddItem(new PushButtonData("Detail Line select", "Detail Line select", dll, "BoostYourBIM.select_detailline"));
+            a_8.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "Selection.png"), UriKind.Absolute));
+            a_8.ToolTip = "After selecting a Detail line the tool will select all intances of the type in the view or the project";
+            PushButton a_13 = (PushButton)panel_2_a.AddItem(new PushButtonData("Total Lenght", "Total Lenght", dll, "BoostYourBIM.TotalLenght"));
+            a_13.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "TotalLenght.png"), UriKind.Absolute));
+            a_13.ToolTip = "Retrives the total lenght of line base elements ";
+            PushButton a_21 = (PushButton)panel_2_a.AddItem(new PushButtonData("Transparensy", "Transparency", dll, "BoostYourBIM.isolate"));
+            a_21.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "solid icon.png"), UriKind.Absolute));
+            a_21.ToolTip = "";
+            PushButton a_22 = (PushButton)panel_2_a.AddItem(new PushButtonData("Isolate category", "Isolate category", dll, "BoostYourBIM.isolate_category"));
+            a_22.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "solid icon.png"), UriKind.Absolute));
+            a_22.ToolTip = "";
+            PushButton a_23 = (PushButton)panel_2_a.AddItem(new PushButtonData("Clean view", "Clean view", dll, "BoostYourBIM.Clean_view"));
+            a_23.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "solid icon.png"), UriKind.Absolute));
+            a_23.ToolTip = "";
+            PushButtonData D_1 = new PushButtonData("Line", "Line", dll, "BoostYourBIM.make_line");
+            D_1.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "line.png"), UriKind.Absolute));
+            PushButton a_16 = (PushButton)panel_3_a.AddItem(new PushButtonData("Select NB wall", "non bounding wall", dll, "BoostYourBIM.Wall_Bounding_room"));
+            a_16.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "nonroombounding.png"), UriKind.Absolute));
+            a_16.ToolTip = "...";
+            PushButtonData D_2 = new PushButtonData("Plane", "Plane", dll, "BoostYourBIM.line_point_plane");
+            D_2.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "line.png"), UriKind.Absolute));
+            PushButtonData D_3 = new PushButtonData("Line distance", "Line from surface", dll, "BoostYourBIM.make_line_from_surface_normal");
+            D_3.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "line.png"), UriKind.Absolute));
+            PushButtonData D_5 = new PushButtonData("Loft geometry", "Loft geometry", dll, "BoostYourBIM.loft");
+            D_5.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "line.png"), UriKind.Absolute));
+            PushButtonData D_6 = new PushButtonData("Duct from line", "Duct geometry", dll, "BoostYourBIM.make_duck_by_line");
+            D_6.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "line.png"), UriKind.Absolute));
+            PushButtonData D_7 = new PushButtonData("Create flex ducts", "Create flex ducts", dll, "BoostYourBIM.Create_flex_ducts_from_line");
+            D_7.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "line.png"), UriKind.Absolute));
+            PushButtonData D_8 = new PushButtonData("Create ducts fitting", "Create ducts fitting", dll, "BoostYourBIM.duct_elbo");
+            D_8.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "line.png"), UriKind.Absolute));
+            PushButtonData D_9 = new PushButtonData("Closest_point", "Closest_point", dll, "BoostYourBIM.Closest_point_2Lines");
+            D_9.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "line.png"), UriKind.Absolute));
+            PushButton D_11 = (PushButton)panel_7_a.AddItem(new PushButtonData("Pipe 3D Lines", "Pipe 3D Lines", dll, "BoostYourBIM.Pipe_lines"));
+            D_11.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "pipelinedgw.png"), UriKind.Absolute));
+            D_11.ToolTip = "...";
+            PushButton D_12 = (PushButton)panel_7_a.AddItem(new PushButtonData("PENO Point", "PENO Point", dll, "BoostYourBIM.Pipe_slab_intersetion"));
+            D_12.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "PENOPT.png"), UriKind.Absolute));
+            D_12.ToolTip = "...";
+            PushButton D_13 = (PushButton)panel_7_a.AddItem(new PushButtonData("Closest grid to Peno", "Closest grid to Peno", dll, "BoostYourBIM.Closestpt_togrids"));
+            D_13.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "closestgrid.png"), UriKind.Absolute));
+            D_13.ToolTip = "...";
+            PushButton D_14 = (PushButton)panel_7_a.AddItem(new PushButtonData("Pipe from lines", "Pipe from lines", dll, "BoostYourBIM.make_pipe_by_line"));
+            D_14.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "Makepipefromline.png"), UriKind.Absolute));
+            D_14.ToolTip = "...";
+            PushButton D_15 = (PushButton)panel_7_a.AddItem(new PushButtonData("Plane by line & point", "Plane by line & point", dll, "BoostYourBIM.line_point_plane"));
+            D_15.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "Planebylinepoint.png"), UriKind.Absolute));
+            D_15.ToolTip = "...";
+            PushButton D_16 = (PushButton)panel_7_a.AddItem(new PushButtonData(" Pipe lines to 12D ", " Pipe lines to 12D ", dll, "BoostYourBIM.Pipe_lines_excel"));
+            D_16.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "pipeline12d.png"), UriKind.Absolute));
+            D_16.ToolTip = "...";
+            PushButton D_17 = (PushButton)panel_7_a.AddItem(new PushButtonData(" Isolate Pipe type ", " Isolate Pipe type ", dll, "BoostYourBIM.Isolate_Pipe"));
+            D_17.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "selectpipe.png"), UriKind.Absolute));
+            D_17.ToolTip = "...";
+            SplitButtonData sb4 = new SplitButtonData("Sheet creating option", "Options to create Sheets sets");
+            SplitButton sb_4 = panel_7_a.AddItem(sb4) as SplitButton;
+            sb_4.IsSynchronizedWithCurrentItem = false;
+            sb_4.ItemText = "hola";
+            sb_4.IsSynchronizedWithCurrentItem = false;
+            sb_4.AddPushButton(D_1);
+            sb_4.AddPushButton(D_2);
+            sb_4.AddPushButton(D_3);
+            sb_4.AddPushButton(D_5);
+            sb_4.AddPushButton(D_6);
+            sb_4.AddPushButton(D_7);
+            sb_4.AddPushButton(D_8);
+            sb_4.AddPushButton(D_9);
+            PushButton a_18 = (PushButton)panel_3_a.AddItem(new PushButtonData("Floor from topo", "Floor from topo", dll, "BoostYourBIM.revision_on_project"));
+            a_18.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "topo.png"), UriKind.Absolute));
+            a_18.ToolTip = "...";
+            PushButtonData C_11 = new PushButtonData("Family Geometry Search", "Family GeoGeometry Search", dll, "BoostYourBIM.Rhino_access_faces");
+            C_11.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "rhinoexport_32.png"), UriKind.Absolute));
+            PushButtonData C_12 = new PushButtonData("Rhino Object to Revit", "Rhino Object to Revit", dll, "BoostYourBIM.Reading_from_rhino");
+            C_12.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "rhinoexport_32_copy.png"), UriKind.Absolute));
+            PushButtonData C_13 = new PushButtonData("Group Geometry Exporter", "Group Geometry Exporter", dll, "BoostYourBIM.Rhino_access");
+            C_13.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "rhinoexport_32.png"), UriKind.Absolute));
+            PushButtonData C_14 = new PushButtonData("Rhino pnts to Revit topo", "Rhino pnts to Revit topo", dll, "BoostYourBIM.rhino_points_to_revit_topo");
+            C_14.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "rhinoexport_32_copy.png"), UriKind.Absolute));
+            PushButtonData C_15 = new PushButtonData("Rhino lns to Revit lines", "Rhino lns to Revit lines", dll, "BoostYourBIM.rhino_lns_to_revit_lns");
+            C_15.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "rhinoexport_32.png"), UriKind.Absolute));
+            PushButtonData C_16 = new PushButtonData("Rhino lns to Frame", "Rhino lns to Frame", dll, "BoostYourBIM.rhino_PTS_to_revitPTS");
+            C_16.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "rhinoexport_32.png"), UriKind.Absolute));
+            PushButtonData C_17 = new PushButtonData("Create_solid_rooms", "Create_solid_rooms", dll, "BoostYourBIM.Create_solid_rooms");
+            C_17.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "rhinoexport_32.png"), UriKind.Absolute));
+            PushButtonData C_18 = new PushButtonData("Import Rhino clash points", "Import Rhino clash points", dll, "BoostYourBIM.rhino_pt_to_revit_clash");
+            C_18.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "rhinoexport_32.png"), UriKind.Absolute));
+            PushButtonData C_19 = new PushButtonData("Import Excel clash points", "Import Excel clash points", dll, "BoostYourBIM.excel_to_revit_clash");
+            C_19.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "rhinoexport_32.png"), UriKind.Absolute));
+            SplitButtonData sb3 = new SplitButtonData("Sheet creating option", "Options to create Sheets sets");
+            SplitButton sb_3 = panel_6_a.AddItem(sb3) as SplitButton;
+            sb_3.IsSynchronizedWithCurrentItem = false;
+            sb_3.ItemText = "hola";
+            sb_3.IsSynchronizedWithCurrentItem = false;
+            sb_3.AddPushButton(C_11);
+            sb_3.AddPushButton(C_12);
+            sb_3.AddPushButton(C_13);
+            sb_3.AddPushButton(C_14);
+            sb_3.AddPushButton(C_15);
+            sb_3.AddPushButton(C_16);
+            sb_3.AddPushButton(C_17);
+            sb_3.AddPushButton(C_18);
+            sb_3.AddPushButton(C_19);
+            PushButtonData b_8 = new PushButtonData("Door Views", "Door Views", dll, "BoostYourBIM.Door_Section");
+            b_8.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "doorSchedule.png"), UriKind.Absolute));
+            b_8.ToolTip = "a section view is created of elements containing an identifier in the parameter field (Schedule Identifier)";
+            PushButtonData b_9 = new PushButtonData("Room Views", "Room Views", dll, "BoostYourBIM.RoomElevations");
+            b_9.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "roomSchedule_32.png"), UriKind.Absolute));
+            b_9.ToolTip = "Section, floor/ceiling plans, Int elevation and Isometric views can be created of one room containing an identifier in the parameter field (Schedule Identifier)";
+            PushButtonData b_10 = new PushButtonData("Wall Views", "Wall Views", dll, "BoostYourBIM.CreateSchedule");
+            b_10.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "cutingwall_32.png"), UriKind.Absolute));
+            b_10.ToolTip = "a section view is created of elements containing an identifier in the parameter field (Schedule Identifier)";
+            PushButtonData b_11 = new PushButtonData("Window Views", "Window Views", dll, "BoostYourBIM.WindowSection");
+            b_11.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "windowSchedule_32.png"), UriKind.Absolute));
+            b_11.ToolTip = "a section view is created of elements containing an identifier in the parameter field (Schedule Identifier)";
 
 
 
@@ -10637,13 +10840,13 @@ namespace BoostYourBIM
 
                 gradientBrush.GradientStops.Add(new GradientStop(Colors.White, 0.0));
 
-                gradientBrush.GradientStops.Add(new GradientStop(Colors.Orange, 0.95));
+                gradientBrush.GradientStops.Add(new GradientStop(Colors.Orange, 1.0));
 
 
 
                 ribbon.FontFamily = new System.Windows.Media.FontFamily("Bauhaus 93");
                 ribbon.Opacity = 70;
-                ribbon.FontSize = 10;
+                ribbon.FontSize = 20;
                 //ribbon.Background = picBrush;
 
 
