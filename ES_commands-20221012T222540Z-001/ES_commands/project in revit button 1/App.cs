@@ -9697,230 +9697,155 @@ namespace BoostYourBIM
 
             XYZ direction = Grid_.Curve.GetEndPoint(0).Subtract(Grid_.Curve.GetEndPoint(1)).Normalize();
 
+            Autodesk.Revit.DB.Line LineWall = lc.Curve as Autodesk.Revit.DB.Line;
 
-            Autodesk.Revit.DB.Line line = lc.Curve as Autodesk.Revit.DB.Line;
-
-            if (null == line)
+            if (null == LineWall)
             {
                 message = "Unable to retrieve wall location line.";
 
                 return Result.Failed;
             }
 
-
             XYZ poscross2 = XYZ.BasisZ.CrossProduct(direction);
 
-            XYZ pntCenter = line.Evaluate(0.5, true);
-            XYZ normal = line.Direction.Normalize();
-            XYZ dir = new XYZ(0, 0, 1);
-            XYZ cross = normal.CrossProduct(dir * -1);
-            XYZ pntEnd = pntCenter + cross.Multiply(2);
-
-          
-
-            XYZ poscross = normal.CrossProduct(dir);
-            XYZ pospntEnd = pntCenter + poscross.Multiply(2);
-
-
-            XYZ vect1 = direction * (-1100 / 304.8);
-            vect1 = vect1.Negate();
-            XYZ vect2 = vect1 + line.Evaluate(0.5, true);
-            Autodesk.Revit.DB.Line line3 = Autodesk.Revit.DB.Line.CreateBound(line.Evaluate(0.5, true), vect2);
-
-            Autodesk.Revit.DB.Line line2 = Autodesk.Revit.DB.Line.CreateBound(pntCenter, pospntEnd);
-
-
-          
-            double GridAngleZ = XYZ.BasisX.AngleTo(poscross2);
+            double GridAngleZ = XYZ.BasisY.AngleTo(direction);
             double GridAngleZDegrees = GridAngleZ * 180 / Math.PI;
-            TaskDialog.Show("!", GridAngleZDegrees.ToString() + poscross2);
 
-         
+            double LineWallangleX = XYZ.BasisY.AngleTo(LineWall.Direction);
+            double angleDegreesX = LineWallangleX * 180 / Math.PI;
 
-            double angleX = XYZ.BasisX.AngleTo(line.Direction);
-            double angleDegreesX = angleX * 180 / Math.PI;
-            //TaskDialog.Show("!", ". Anlge to X = " + angleDegreesX.ToString() + line.Direction);
-
-
-            double ABAngle = line.Direction.AngleTo(direction/*poscross2*/);
-           
+            double ABAngle = LineWall.Direction.AngleTo(direction/*poscross2*/);
             double ABAngleZDegrees = ABAngle * 180 / Math.PI;
-            TaskDialog.Show("!", ABAngleZDegrees.ToString() + direction);
+            TaskDialog.Show("!", ABAngleZDegrees.ToString() +"Degress "+ LineWall.Direction);
 
 
             using (Transaction tx = new Transaction(doc))
             {
                 tx.Start("Create Wall Section View");
-
-
-                Autodesk.Revit.DB.Line axis = Autodesk.Revit.DB.Line.CreateUnbound(line.Evaluate(0.5, true), XYZ.BasisZ);
+                Autodesk.Revit.DB.Line axis = Autodesk.Revit.DB.Line.CreateUnbound(LineWall.Evaluate(0.5, true), XYZ.BasisZ);
                 if (direction.X > 0 && direction.Y > 0)
                 {
-                    ABAngle = ABAngle *-1;
+                   
 
-                    wall_.Location.Rotate(axis, (ABAngle * -1));
+                    if (LineWall.Direction.X < 0 && LineWall.Direction.Y < 0)
+                    {
+                        if (ABAngleZDegrees > 90)
+                        {
+                            ABAngle = Math.PI - ABAngle;
+                            ABAngleZDegrees = ABAngle * 180 / Math.PI;
+                        }
+
+                        if (angleDegreesX > 90)
+                        {
+                            if (GridAngleZDegrees > angleDegreesX)
+                            {
+                                ABAngle = Math.PI - ABAngle;
+                                ABAngleZDegrees = ABAngle * 180 / Math.PI;
+                            }else
+                            wall_.Location.Rotate(axis, ABAngle);
+                        }
+                        else
+                        {
+                            if (LineWallangleX > GridAngleZ)
+                            {
+                                wall_.Location.Rotate(axis, (ABAngle * -1));
+
+                            }
+                            if (LineWallangleX < GridAngleZ)
+                            {
+                                wall_.Location.Rotate(axis, ABAngle);
+
+                            }
+                        }
+                        
+                    }
+                    else
+                    {
+                        if (LineWallangleX > GridAngleZ)
+                        {
+                            wall_.Location.Rotate(axis, ABAngle);
+                        }
+                        if (LineWallangleX < GridAngleZ)
+                        {
+                            wall_.Location.Rotate(axis, (ABAngle * -1));
+                        }
+                    }
+                    
                 }
                 if (direction.X < 0 && direction.Y > 0)
                 {
-                    if (angleX > GridAngleZ)
+                    if (GridAngleZDegrees < 90)
                     {
-                        wall_.Location.Rotate(axis, angleX - GridAngleZ);
+                        GridAngleZ = Math.PI - GridAngleZ  ;
+                        ABAngleZDegrees = GridAngleZ * 180 / Math.PI;
                     }
-                    if (angleX < GridAngleZ)
+                    if (LineWallangleX > GridAngleZ)
                     {
-                        wall_.Location.Rotate(axis, (GridAngleZ - angleX) * -1);
+
+                        wall_.Location.Rotate(axis, (ABAngle * -1));
+                        
+                    }
+                    if (LineWallangleX < GridAngleZ)
+                    {
+                        wall_.Location.Rotate(axis, ABAngle);
                     }
                 }
                 if (direction.X > 0 && direction.Y < 0)
                 {
-                    wall_.Location.Rotate(axis, ABAngle );
+                    if (GridAngleZDegrees > 90)
+                    {
+
+                        GridAngleZ =  Math.PI - GridAngleZ ;
+                        GridAngleZDegrees = GridAngleZ * 180 / Math.PI;
+                    }
+                    if (ABAngleZDegrees > 90)
+                    {
+                        ABAngle = Math.PI - ABAngle;
+                        ABAngleZDegrees = ABAngle * 180 / Math.PI;
+                    }
+                    if (LineWallangleX > GridAngleZ)
+                    {
+                        wall_.Location.Rotate(axis, (ABAngle * -1));
+                    }
+                    if (LineWallangleX < GridAngleZ)
+                    {
+                        wall_.Location.Rotate(axis, ABAngle);
+                    }
                 }
                 if (direction.X < 0 && direction.Y < 0)
                 {
-                    wall_.Location.Rotate(axis, ABAngle);
+                    if (GridAngleZDegrees < 90)
+                    {
+
+                        GridAngleZ = Math.PI - GridAngleZ;
+                        GridAngleZDegrees = GridAngleZ * 180 / Math.PI;
+                    }
+
+                    if (ABAngleZDegrees > 90)
+                    {
+                        ABAngle = Math.PI - ABAngle;
+                        ABAngleZDegrees = ABAngle * 180 / Math.PI;
+
+                    }
+                    if (LineWallangleX > GridAngleZ)
+                    {
+                        wall_.Location.Rotate(axis, (ABAngle * -1));
+                        //wall_.Location.Rotate(axis, ABAngle);
+                    }
+                    if (LineWallangleX < GridAngleZ)
+                    {
+                        wall_.Location.Rotate(axis, ABAngle);
+                    }
                 }
 
-
-
-
-
-
-
-                Makeline(doc, line.Evaluate(0.5, true), vect2);
+                XYZ vect1 = direction * (-1100 / 304.8);
+                //vect1 = vect1.Negate();
+                XYZ vect2 = vect1 + LineWall.Evaluate(0.5, true);
+                Makeline(doc, LineWall.Evaluate(0.5, true), vect2);
                
 
                 tx.Commit();
             }
-
-
-
-            //if (pntCenter.X < line2.GetEndPoint(1).X)
-            //{
-            //    angle4 = 2 * Math.PI - angle4;
-            //}
-            //double angleDegreesCorrected4 = angle4 * 180 / Math.PI;
-
-            //Autodesk.Revit.DB.Line axis = Autodesk.Revit.DB.Line.CreateUnbound(pntEnd, XYZ.BasisZ);
-
-
-
-            //foreach (Element wall in new FilteredElementCollector(doc).OfClass(typeof(Wall)))
-            //{
-            //    LocationCurve lc = wall.Location as LocationCurve;
-            //    Autodesk.Revit.DB.Transform curveTransform = lc.Curve.ComputeDerivatives(0.5, true);
-
-            //    try
-            //    {
-            //        XYZ origin2 = curveTransform.Origin;
-            //        XYZ viewdir2 = curveTransform.BasisX.Normalize();
-            //        XYZ viewdir2_back = curveTransform.BasisX.Normalize() * -1;
-
-            //        XYZ up2 = XYZ.BasisZ;
-            //        XYZ right2 = up.CrossProduct(viewdir2);
-            //        XYZ left2 = up.CrossProduct(viewdir2 * -1);
-
-            //        double y_onverted = Math.Round(-1 * viewdir2.X);
-
-            //        if (viewdir.IsAlmostEqualTo(right2/*, 0.3333333333*/))
-            //        {
-            //            ele.Add(wall);
-            //        }
-            //        if (viewdir.IsAlmostEqualTo(left2))
-            //        {
-            //            ele.Add(wall);
-            //        }
-            //        if (viewdir.IsAlmostEqualTo(viewdir2))
-            //        {
-            //            ele.Add(wall);
-            //        }
-            //        if (viewdir.IsAlmostEqualTo(viewdir2_back))
-            //        {
-            //            ele.Add(wall);
-            //        }
-
-
-            //    }
-            //    catch (Exception)
-            //    {
-            //        return Autodesk.Revit.UI.Result.Cancelled;
-            //    }
-            //}
-
-            //UIApplication uiapp = commandData.Application;
-            //UIDocument uidoc = uiapp.ActiveUIDocument;
-            //Autodesk.Revit.DB.Document doc = uidoc.Document;
-
-            //ViewFamilyType vftele = new FilteredElementCollector(doc).OfClass(typeof(ViewFamilyType)).Cast<ViewFamilyType>().FirstOrDefault<ViewFamilyType>(x => ViewFamily.Elevation == x.ViewFamily);
-
-            //ICollection<ElementId> ids = uidoc.Selection.GetElementIds();
-
-            //List<Wall> Wall_Sel = new List<Wall>();
-            //foreach (ElementId id in ids)
-            //{
-            //    Element e = doc.GetElement(id);
-
-            //    Wall_Sel.Add(e as Wall);
-            //}
-
-            //List<Element> ele = new List<Element>();
-            //List<Element> ele2 = new List<Element>();
-            //IList<Reference> refList = new List<Reference>();
-
-            //TaskDialog.Show("!", "Select a reference Grid to find orthogonal walls");
-            //Autodesk.Revit.DB.Grid levelBelow = doc.GetElement(uidoc.Selection.PickObject(ObjectType.Element, "Select Grid")) as Autodesk.Revit.DB.Grid;
-
-            //Autodesk.Revit.DB.Curve dircurve = levelBelow.Curve;
-            //Autodesk.Revit.DB.Line Grid_line = dircurve as Autodesk.Revit.DB.Line;
-            ////XYZ dir = Grid_line.Direction;
-
-
-            //XYZ grid_dir = Grid_line.Direction;
-            //XYZ up = XYZ.BasisZ;
-            //XYZ right = up.CrossProduct(grid_dir);
-            //List<Element> To_Be_Rotated = new List<Element>();
-
-            //foreach (var wall in Wall_Sel)
-            //{
-            //    LocationCurve lc = wall.Location as LocationCurve;
-            //    Autodesk.Revit.DB.Transform curveTransform = lc.Curve.ComputeDerivatives(0.5, true);
-
-
-
-            //    foreach (Wall id in Wall_Sel)
-            //    {
-
-            //        try
-            //        {
-            //            XYZ origin2 = curveTransform.Origin;
-            //            XYZ viewdir2 = curveTransform.BasisX.Normalize();
-            //            XYZ viewdir2_back = curveTransform.BasisX.Normalize() * -1;
-
-            //            XYZ up2 = XYZ.BasisZ;
-            //            XYZ right2 = up.CrossProduct(viewdir2);
-            //            XYZ left2 = up.CrossProduct(viewdir2 * -1);
-
-            //            double y_onverted = Math.Round(-1 * viewdir2.X);
-
-            //            if (grid_dir.IsAlmostEqualTo(right2/*, 0.3333333333*/) || grid_dir.IsAlmostEqualTo(left2) || grid_dir.IsAlmostEqualTo(viewdir2) || grid_dir.IsAlmostEqualTo(viewdir2_back))
-            //            {
-            //                ele.Add(wall);
-            //            }
-            //            else
-            //            {
-            //                To_Be_Rotated.Add(wall);
-            //            }
-            //        }
-            //        catch (Exception)
-            //        {
-            //            return Autodesk.Revit.UI.Result.Cancelled;
-            //        }
-            //    }
-
-
-
-            //}
-
-
             return Result.Succeeded;
         }
     }
@@ -10645,11 +10570,11 @@ namespace BoostYourBIM
             sb.AddPushButton(b4);
             sb.AddPushButton(b5);
             sb.AddPushButton(b6);
-            PushButton aa_1 = (PushButton)panel_1_a.AddItem(new PushButtonData("Sync Manager", "Sync Manager", dll, "BoostYourBIM.Sync_"));
-            aa_1.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "sync.png"), UriKind.Absolute));
+            //PushButton aa_1 = (PushButton)panel_1_a.AddItem(new PushButtonData("Sync Manager", "Sync Manager", dll, "BoostYourBIM.Sync_"));
+            //aa_1.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "sync.png"), UriKind.Absolute));
 
-            PushButton aa_2 = (PushButton)panel_1_a.AddItem(new PushButtonData("Intersec Room", "Intersec Room", dll, "BoostYourBIM.IntersecRoom"));
-            aa_2.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "sync.png"), UriKind.Absolute));
+            //PushButton aa_2 = (PushButton)panel_1_a.AddItem(new PushButtonData("Intersec Room", "Intersec Room", dll, "BoostYourBIM.IntersecRoom"));
+            //aa_2.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "sync.png"), UriKind.Absolute));
 
             PushButton a_1 = (PushButton)panel_1_a.AddItem(new PushButtonData("Delete All Views", "Delete All Views", dll, "BoostYourBIM.DeleteAllViews"));
             a_1.LargeImage = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "Erase.png"), UriKind.Absolute));
