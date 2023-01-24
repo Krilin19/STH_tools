@@ -41,6 +41,8 @@ using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using System.Timers;
 using System.Security.Cryptography;
 using System.Windows.Shapes;
+using System.Windows.Media.Media3D;
+using OfficeOpenXml.Drawing.Chart;
 
 namespace BoostYourBIM
 {
@@ -9498,12 +9500,8 @@ namespace BoostYourBIM
 
             ViewFamilyType vftele = new FilteredElementCollector(doc).OfClass(typeof(ViewFamilyType)).Cast<ViewFamilyType>().FirstOrDefault<ViewFamilyType>(x => ViewFamily.Elevation == x.ViewFamily);
 
-
-
             ICollection<ElementId> ids = uidoc.Selection.GetElementIds();
-
             Wall wall = null;
-
             foreach (ElementId id in ids)
             {
                 Element e = doc.GetElement(id);
@@ -9621,53 +9619,7 @@ namespace BoostYourBIM
     [Autodesk.Revit.Attributes.Transaction(Autodesk.Revit.Attributes.TransactionMode.Manual)]
     public class Rot_Wal_Angle_To_Grid : IExternalCommand
     {
-        public static ModelLine Makeline(Autodesk.Revit.DB.Document doc, XYZ pta, XYZ ptb)
-        {
-            ModelLine modelLine = null;
-            double distance = pta.DistanceTo(ptb);
-            if (distance < 0.01)
-            {
-                TaskDialog.Show("Error", "Distance" + distance);
-                return modelLine;
-            }
-
-            XYZ norm = pta.CrossProduct(ptb);
-            if (norm.GetLength() == 0)
-            {
-                XYZ aSubB = pta.Subtract(ptb);
-                XYZ aSubBcrossz = aSubB.CrossProduct(XYZ.BasisZ);
-                double crosslenght = aSubBcrossz.GetLength();
-                if (crosslenght == 0)
-                {
-                    norm = XYZ.BasisY;
-                }
-                else
-                {
-                    norm = XYZ.BasisZ;
-                }
-            }
-
-            Autodesk.Revit.DB.Plane plane = Autodesk.Revit.DB.Plane.CreateByNormalAndOrigin(norm, ptb);
-
-
-            SketchPlane skplane = SketchPlane.Create(doc, plane);
-
-            Autodesk.Revit.DB.Line line = Autodesk.Revit.DB.Line.CreateBound(pta, ptb);
-
-            if (doc.IsFamilyDocument)
-            {
-                modelLine = doc.FamilyCreate.NewModelCurve(line, skplane) as ModelLine;
-            }
-            else
-            {
-                modelLine = doc.Create.NewModelCurve(line, skplane) as ModelLine;
-            }
-            if (modelLine == null)
-            {
-                TaskDialog.Show("Error", "Model line = null");
-            }
-            return modelLine;
-        }
+       
         public XYZ InvCoord(XYZ MyCoord)
         {
             XYZ invcoord = new XYZ((Convert.ToDouble(MyCoord.X * -1)),
@@ -9689,161 +9641,126 @@ namespace BoostYourBIM
             TaskDialog.Show("!", "Select a reference Grid to find orthogonal walls");
 
             Autodesk.Revit.DB.Grid Grid_ = doc.GetElement(uidoc.Selection.PickObject(ObjectType.Element, "Select Grid")) as Autodesk.Revit.DB.Grid;
-            
-            Autodesk.Revit.DB.Wall wall_ = doc.GetElement(uidoc.Selection.PickObject(ObjectType.Element, "Select Grid")) as Autodesk.Revit.DB.Wall;
+            //Autodesk.Revit.DB.Wall el = doc.GetElement(uidoc.Selection.PickObject(ObjectType.Element, "Select Grid")) as Autodesk.Revit.DB.Wall;
+            Element el = doc.GetElement(uidoc.Selection.PickObject(ObjectType.Element, "Select an existing group"));
+            LocationCurve lc = el.Location as LocationCurve;
+            Autodesk.Revit.DB.LocationPoint lp = null;
+            XYZ  LineWallDir;
+            if (lc != null)
+            {
+                LineWallDir = (lc.Curve as Autodesk.Revit.DB.Line).Direction;
+            }
+            else
+            {
+                Location loc = el.Location;
+                lp = loc as Autodesk.Revit.DB.LocationPoint;
 
-            LocationCurve lc = wall_.Location as LocationCurve;
-
+                var fi = el as FamilyInstance;
+                XYZ DIR = fi.FacingOrientation;
+                XYZ DirEnd = DIR * (1100 / 304.8);
+                LineWallDir = DirEnd;
+            }
 
             XYZ direction = Grid_.Curve.GetEndPoint(0).Subtract(Grid_.Curve.GetEndPoint(1)).Normalize();
 
-            Autodesk.Revit.DB.Line LineWall = lc.Curve as Autodesk.Revit.DB.Line;
+            //if (null == LineWall)
+            //{
+            //    message = "Unable to retrieve wall location line.";
 
-            if (null == LineWall)
-            {
-                message = "Unable to retrieve wall location line.";
+            //    return Result.Failed;
+            //}
 
-                return Result.Failed;
-            }
+            //XYZ poscross2 = XYZ.BasisZ.CrossProduct(direction);
 
-            XYZ poscross2 = XYZ.BasisZ.CrossProduct(direction);
+            //double GridAngleZ = XYZ.BasisY.AngleTo(direction);
+            //double GridAngleZDegrees = GridAngleZ * 180 / Math.PI;
 
-            double GridAngleZ = XYZ.BasisY.AngleTo(direction);
-            double GridAngleZDegrees = GridAngleZ * 180 / Math.PI;
+            //double LineWallangleX = XYZ.BasisY.AngleTo(LineWall.Direction);
+            //double LineWallangleDegreesX = LineWallangleX * 180 / Math.PI;
 
-            double LineWallangleX = XYZ.BasisY.AngleTo(LineWall.Direction);
-            double angleDegreesX = LineWallangleX * 180 / Math.PI;
+            double RadiansOfRotation = LineWallDir.AngleTo(direction/*poscross2*/);
+            double AngleOfRotation = RadiansOfRotation * 180 / Math.PI;
 
-            double ABAngle = LineWall.Direction.AngleTo(direction/*poscross2*/);
-            double ABAngleZDegrees = ABAngle * 180 / Math.PI;
-            TaskDialog.Show("!", ABAngleZDegrees.ToString() +"Degress "+ LineWall.Direction);
-
+            //double RadiansOfRotationColumn = DIR.AngleTo(direction/*poscross2*/);
+            //double AngleOfRotationColumn = RadiansOfRotationColumn * 180 / Math.PI;
+            //TaskDialog.Show("!", AngleOfRotation.ToString() +"Degress "+ LineWall.Direction);
+            Autodesk.Revit.DB.Line axis = null;
 
             using (Transaction tx = new Transaction(doc))
             {
                 tx.Start("Create Wall Section View");
-                Autodesk.Revit.DB.Line axis = Autodesk.Revit.DB.Line.CreateUnbound(LineWall.Evaluate(0.5, true), XYZ.BasisZ);
-                if (direction.X > 0 && direction.Y > 0)
+
+                if (lc != null)
                 {
-                   
+                    axis = Autodesk.Revit.DB.Line.CreateUnbound(lc.Curve.Evaluate(0.5, true), XYZ.BasisZ);
+                }
+                else
+                {
+                    axis = Autodesk.Revit.DB.Line.CreateUnbound((lp.Point), XYZ.BasisZ);
+                }
 
-                    if (LineWall.Direction.X < 0 && LineWall.Direction.Y < 0)
+                
+
+                XYZ ElementDir = XYZ.Zero;
+
+                if (AngleOfRotation > 90)
+                {
+                    RadiansOfRotation = Math.PI - RadiansOfRotation;
+                    AngleOfRotation = RadiansOfRotation * 180 / Math.PI;
+                }
+                
+                if (LineWallDir.IsAlmostEqualTo(direction))
+                {
+                    goto end;
+                }
+                else
+                {
+                    el.Location.Rotate(axis, (RadiansOfRotation * -1));
+
+                    if (lc != null)
                     {
-                        if (ABAngleZDegrees > 90)
-                        {
-                            ABAngle = Math.PI - ABAngle;
-                            ABAngleZDegrees = ABAngle * 180 / Math.PI;
-                        }
-
-                        if (angleDegreesX > 90)
-                        {
-                            if (GridAngleZDegrees > angleDegreesX)
-                            {
-                                ABAngle = Math.PI - ABAngle;
-                                ABAngleZDegrees = ABAngle * 180 / Math.PI;
-                            }else
-                            wall_.Location.Rotate(axis, ABAngle);
-                        }
-                        else
-                        {
-                            if (LineWallangleX > GridAngleZ)
-                            {
-                                wall_.Location.Rotate(axis, (ABAngle * -1));
-
-                            }
-                            if (LineWallangleX < GridAngleZ)
-                            {
-                                wall_.Location.Rotate(axis, ABAngle);
-
-                            }
-                        }
-                        
+                        ElementDir = ((el.Location as LocationCurve).Curve as Autodesk.Revit.DB.Line).Direction;
+                        double RadiansOfRotationTest = ElementDir.AngleTo(direction);
+                        double AngleOfRotationTest = RadiansOfRotationTest * 180 / Math.PI;
                     }
                     else
                     {
-                        if (LineWallangleX > GridAngleZ)
-                        {
-                            wall_.Location.Rotate(axis, ABAngle);
-                        }
-                        if (LineWallangleX < GridAngleZ)
-                        {
-                            wall_.Location.Rotate(axis, (ABAngle * -1));
-                        }
+                        Location loc = el.Location;
+                        lp = loc as Autodesk.Revit.DB.LocationPoint;
+
+                        var fi = el as FamilyInstance;
+                        XYZ DIR = fi.FacingOrientation;
+
+                        ElementDir = DIR;
+                        double RadiansOfRotationTest = ElementDir.AngleTo(direction);
+                        double AngleOfRotationTest = RadiansOfRotationTest * 180 / Math.PI;
                     }
                     
-                }
-                if (direction.X < 0 && direction.Y > 0)
-                {
-                    if (GridAngleZDegrees < 90)
-                    {
-                        GridAngleZ = Math.PI - GridAngleZ  ;
-                        ABAngleZDegrees = GridAngleZ * 180 / Math.PI;
-                    }
-                    if (LineWallangleX > GridAngleZ)
-                    {
+                    
 
-                        wall_.Location.Rotate(axis, (ABAngle * -1));
-                        
-                    }
-                    if (LineWallangleX < GridAngleZ)
+                    if (ElementDir.IsAlmostEqualTo(direction))
                     {
-                        wall_.Location.Rotate(axis, ABAngle);
+                        goto end;
                     }
-                }
-                if (direction.X > 0 && direction.Y < 0)
-                {
-                    if (GridAngleZDegrees > 90)
-                    {
 
-                        GridAngleZ =  Math.PI - GridAngleZ ;
-                        GridAngleZDegrees = GridAngleZ * 180 / Math.PI;
-                    }
-                    if (ABAngleZDegrees > 90)
+                    XYZ Inverted = InvCoord(direction);
+                    if (ElementDir.IsAlmostEqualTo(Inverted))
                     {
-                        ABAngle = Math.PI - ABAngle;
-                        ABAngleZDegrees = ABAngle * 180 / Math.PI;
+                        goto end;
                     }
-                    if (LineWallangleX > GridAngleZ)
+                    else
                     {
-                        wall_.Location.Rotate(axis, (ABAngle * -1));
-                    }
-                    if (LineWallangleX < GridAngleZ)
-                    {
-                        wall_.Location.Rotate(axis, ABAngle);
+                        el.Location.Rotate(axis, RadiansOfRotation);
+                        double RadiansOfRotationTest2 = ElementDir.AngleTo(direction);
+                        double AngleOfRotationTest2 = RadiansOfRotationTest2 * 180 / Math.PI;
+
+                        el.Location.Rotate(axis, RadiansOfRotation);
+                        double RadiansOfRotationTest3 = ElementDir.AngleTo(direction);
+                        double AngleOfRotationTest3 = RadiansOfRotationTest3 * 180 / Math.PI;
+                        goto end;
                     }
                 }
-                if (direction.X < 0 && direction.Y < 0)
-                {
-                    if (GridAngleZDegrees < 90)
-                    {
-
-                        GridAngleZ = Math.PI - GridAngleZ;
-                        GridAngleZDegrees = GridAngleZ * 180 / Math.PI;
-                    }
-
-                    if (ABAngleZDegrees > 90)
-                    {
-                        ABAngle = Math.PI - ABAngle;
-                        ABAngleZDegrees = ABAngle * 180 / Math.PI;
-
-                    }
-                    if (LineWallangleX > GridAngleZ)
-                    {
-                        wall_.Location.Rotate(axis, (ABAngle * -1));
-                        //wall_.Location.Rotate(axis, ABAngle);
-                    }
-                    if (LineWallangleX < GridAngleZ)
-                    {
-                        wall_.Location.Rotate(axis, ABAngle);
-                    }
-                }
-
-                XYZ vect1 = direction * (-1100 / 304.8);
-                //vect1 = vect1.Negate();
-                XYZ vect2 = vect1 + LineWall.Evaluate(0.5, true);
-                Makeline(doc, LineWall.Evaluate(0.5, true), vect2);
-               
-
+                end:
                 tx.Commit();
             }
             return Result.Succeeded;
